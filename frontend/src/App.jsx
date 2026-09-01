@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { api } from './services/api';
 import { AuthScreen } from './components/AuthScreen';
 import { Header } from './components/Header';
+import { OnboardingWizard } from './components/OnboardingWizard';
+import { InteractiveTutorialModal } from './components/InteractiveTutorialModal';
 import { DashboardMetrics } from './components/DashboardMetrics';
 import { TenantsSection } from './components/TenantsSection';
 import { PropertiesSection } from './components/PropertiesSection';
@@ -13,7 +15,7 @@ import { WhatsAppPreviewModal } from './components/WhatsAppPreviewModal';
 import { SettingsModal } from './components/SettingsModal';
 import { DeployGuideModal } from './components/DeployGuideModal';
 import { TokenInspectorModal } from './components/TokenInspectorModal';
-import { CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Sparkles, Building2, UserPlus, HelpCircle, RefreshCw } from 'lucide-react';
 
 export default function App() {
   // Auth state
@@ -42,6 +44,7 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDeployGuideOpen, setIsDeployGuideOpen] = useState(false);
   const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   
   // Automation execution state
   const [isRunningAutomation, setIsRunningAutomation] = useState(false);
@@ -103,6 +106,29 @@ export default function App() {
     setToken(null);
     setOwner(null);
     showToast('Logged out successfully.');
+  };
+
+  // Handler: Clear Demo Data (Start Fresh for new account)
+  const handleClearDemoData = async () => {
+    if (!window.confirm('Clear all sample properties & tenants to start fresh with your own real data?')) return;
+    try {
+      await api.clearDemoData();
+      await loadAllData();
+      showToast('Demo data cleared! You now have a clean slate to add your properties.');
+    } catch (err) {
+      showToast('Failed to clear demo data: ' + err.message, 'error');
+    }
+  };
+
+  // Handler: Load Demo Data
+  const handleLoadDemoData = async () => {
+    try {
+      await api.loadDemoData();
+      await loadAllData();
+      showToast('Sample demo data loaded successfully!');
+    } catch (err) {
+      showToast('Failed to load demo data', 'error');
+    }
   };
 
   // Handler: Run Automation Cycle
@@ -309,6 +335,8 @@ export default function App() {
     return <AuthScreen onLoginSuccess={handleLoginSuccess} />;
   }
 
+  const isDemoActive = properties.length > 0 && properties.some(p => p.name.includes('Skyline') || p.name.includes('Emerald'));
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-indigo-500 selection:text-white">
       
@@ -333,7 +361,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
         
         {/* Toast Notification */}
         {toastMessage && (
@@ -352,6 +380,18 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {/* Top Interactive Step-by-Step Onboarding Roadmap */}
+        <OnboardingWizard
+          ownerName={owner?.name}
+          propertiesCount={properties.length}
+          tenantsCount={tenants.length}
+          numbersCount={phoneNumbers.filter(n => n.is_active).length}
+          onSwitchTab={setActiveTab}
+          onClearDemoData={handleClearDemoData}
+          onOpenTutorial={() => setIsTutorialOpen(true)}
+          isDemoDataActive={isDemoActive}
+        />
 
         {/* Tab 1: Dashboard Overview */}
         {activeTab === 'dashboard' && (
@@ -379,17 +419,43 @@ export default function App() {
                 </button>
               </div>
 
-              <TenantsSection
-                tenants={tenants.filter(t => t.status === 'OVERDUE' || t.status === 'DUE_TODAY')}
-                properties={properties}
-                currency={settings?.currency_symbol || '₹'}
-                onMarkAsPaid={handleMarkAsPaid}
-                onSimulateCall={handleSimulateCall}
-                onSimulateWhatsApp={handleSimulateWhatsApp}
-                onCreateTenant={handleCreateTenant}
-                onDeleteTenant={handleDeleteTenant}
-                onStatusChange={handleStatusChange}
-              />
+              {tenants.length === 0 ? (
+                <div className="p-8 rounded-2xl bg-slate-900/60 border border-slate-800 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mx-auto">
+                    <UserPlus className="w-6 h-6" />
+                  </div>
+                  <h4 className="font-bold text-white text-sm">No Tenants Added Yet</h4>
+                  <p className="text-xs text-slate-400 max-w-md mx-auto">
+                    Click "Add Tenant" to register your first tenant, or click "Load Sample Data" to explore how automatic calling works.
+                  </p>
+                  <div className="flex items-center justify-center gap-2 pt-2">
+                    <button
+                      onClick={() => setActiveTab('tenants')}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg transition"
+                    >
+                      + Add Your First Tenant
+                    </button>
+                    <button
+                      onClick={handleLoadDemoData}
+                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-xl border border-slate-700 transition"
+                    >
+                      Load Sample Demo Data
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <TenantsSection
+                  tenants={tenants.filter(t => t.status === 'OVERDUE' || t.status === 'DUE_TODAY')}
+                  properties={properties}
+                  currency={settings?.currency_symbol || '₹'}
+                  onMarkAsPaid={handleMarkAsPaid}
+                  onSimulateCall={handleSimulateCall}
+                  onSimulateWhatsApp={handleSimulateWhatsApp}
+                  onCreateTenant={handleCreateTenant}
+                  onDeleteTenant={handleDeleteTenant}
+                  onStatusChange={handleStatusChange}
+                />
+              )}
             </div>
           </div>
         )}
@@ -450,6 +516,13 @@ export default function App() {
 
       </main>
 
+      {/* Step-by-Step Interactive Tutorial Modal */}
+      <InteractiveTutorialModal
+        isOpen={isTutorialOpen}
+        onClose={() => setIsTutorialOpen(false)}
+        onStartAction={() => setActiveTab('properties')}
+      />
+
       {/* Interactive Phone Simulator Modal */}
       <LivePhoneSimulatorModal
         isOpen={Boolean(simulatorCallData)}
@@ -491,7 +564,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="border-t border-slate-800/80 bg-slate-950 py-4 text-center text-xs text-slate-500">
-        Property Rent Automated Collection Engine • JWT Bearer Token Protected • Built with Node.js & React
+        Property Rent Automated Collection Engine • Anti-Blocking DID Pool • JWT Protected • Built with Node.js & React
       </footer>
 
     </div>

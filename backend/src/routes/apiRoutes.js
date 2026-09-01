@@ -297,14 +297,94 @@ router.get('/dashboard-metrics', (req, res) => {
     totalRentExpected,
     totalRentCollected,
     collectionRate: totalRentExpected > 0 ? Math.round((totalRentCollected / totalRentExpected) * 100) : 0,
-    overdueCount,
-    dueTodayCount,
-    paidCount,
-    upcomingCount,
-    totalCallsMade,
-    totalWhatsAppSent,
-    activeNumbersCount,
-    currencySymbol: settings.currency_symbol || '₹'
+// ================= DEMO DATA CONTROL (CLEAR / RESET) ================= //
+router.post('/account/clear-demo', (req, res) => {
+  db.set('properties', []);
+  db.set('tenants', []);
+  db.set('payment_history', []);
+  db.set('automation_logs', []);
+  res.json({
+    success: true,
+    message: 'Demo data cleared successfully. Account is now ready for your own properties and tenants!'
+  });
+});
+
+router.post('/account/load-demo', (req, res) => {
+  const today = new Date();
+  const currentDay = today.getDate();
+  const currentMonth = today.toLocaleString('default', { month: 'short' });
+  const currentYear = today.getFullYear();
+
+  const demoProperties = [
+    {
+      id: `prop-${Date.now()}-1`,
+      name: 'Skyline Palms Residency',
+      type: 'Apartment',
+      address: '42 Orchid Boulevard, Block C',
+      city: 'Chennai',
+      state: 'Tamil Nadu',
+      units_count: 8,
+      default_rent: 22000,
+      created_at: new Date().toISOString()
+    },
+    {
+      id: `prop-${Date.now()}-2`,
+      name: 'Emerald Heights Villas',
+      type: 'Villa',
+      address: '104 Hill View Greens, Anna Nagar',
+      city: 'Chennai',
+      state: 'Tamil Nadu',
+      units_count: 4,
+      default_rent: 45000,
+      created_at: new Date().toISOString()
+    }
+  ];
+
+  const demoTenants = [
+    {
+      id: `ten-${Date.now()}-1`,
+      property_id: demoProperties[0].id,
+      property_name: demoProperties[0].name,
+      unit_number: 'A-204',
+      name: 'Rahul Sharma',
+      phone: '+91 98450 12345',
+      email: 'rahul.sharma@example.com',
+      rent_amount: 22000,
+      due_day: Math.max(1, currentDay - 3),
+      grace_days: 2,
+      status: 'OVERDUE',
+      last_paid_date: null,
+      auto_call_enabled: true,
+      auto_sms_enabled: true,
+      auto_wa_enabled: true,
+      created_at: new Date().toISOString()
+    },
+    {
+      id: `ten-${Date.now()}-2`,
+      property_id: demoProperties[0].id,
+      property_name: demoProperties[0].name,
+      unit_number: 'B-301',
+      name: 'Priya Sundaram',
+      phone: '+91 98765 43210',
+      email: 'priya.sundaram@example.com',
+      rent_amount: 24000,
+      due_day: currentDay,
+      grace_days: 3,
+      status: 'DUE_TODAY',
+      last_paid_date: null,
+      auto_call_enabled: true,
+      auto_sms_enabled: true,
+      auto_wa_enabled: true,
+      created_at: new Date().toISOString()
+    }
+  ];
+
+  db.set('properties', demoProperties);
+  db.set('tenants', demoTenants);
+
+  res.json({
+    success: true,
+    message: 'Sample demo data loaded successfully'
   });
 });
 

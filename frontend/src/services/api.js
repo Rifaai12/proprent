@@ -48,6 +48,23 @@ export const api = {
     } catch (e) {}
   },
 
+  // Demo Data Reset
+  clearDemoData: async () => {
+    const res = await fetch(`${API_BASE}/account/clear-demo`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    return res.json();
+  },
+
+  loadDemoData: async () => {
+    const res = await fetch(`${API_BASE}/account/load-demo`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    return res.json();
+  },
+
   // Dashboard Metrics
   getDashboardMetrics: async () => {
     const res = await fetch(`${API_BASE}/dashboard-metrics`, { headers: getAuthHeaders() });
