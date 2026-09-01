@@ -1,7 +1,18 @@
 import React from 'react';
-import { Building2, PhoneCall, Play, Settings, BookOpen, ShieldCheck, Sparkles, RefreshCw } from 'lucide-react';
+import { Building2, PhoneCall, Settings, BookOpen, Key, LogOut, RefreshCw, UserCheck } from 'lucide-react';
 
-export const Header = ({ onRunAutomation, onOpenSimulator, onOpenSettings, onOpenDeployGuide, isRunningAutomation, activeTab, setActiveTab }) => {
+export const Header = ({ 
+  onRunAutomation, 
+  onOpenSimulator, 
+  onOpenSettings, 
+  onOpenDeployGuide, 
+  onOpenTokenInspector, 
+  onLogout,
+  owner,
+  isRunningAutomation, 
+  activeTab, 
+  setActiveTab 
+}) => {
   return (
     <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
@@ -16,7 +27,7 @@ export const Header = ({ onRunAutomation, onOpenSimulator, onOpenSettings, onOpe
               <div className="flex items-center gap-2">
                 <h1 className="text-lg font-bold text-white tracking-tight">PropertyRent<span className="text-emerald-400">.AI</span></h1>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  Automated Calling Engine
+                  Owner Portal
                 </span>
               </div>
               <p className="text-xs text-slate-400">
@@ -49,7 +60,7 @@ export const Header = ({ onRunAutomation, onOpenSimulator, onOpenSettings, onOpe
             ))}
           </div>
 
-          {/* Action Buttons */}
+          {/* Action Buttons & Owner Profile */}
           <div className="flex items-center gap-2 flex-wrap">
             {/* Run Daily Automation Engine */}
             <button
@@ -78,7 +89,17 @@ export const Header = ({ onRunAutomation, onOpenSimulator, onOpenSettings, onOpe
               title="How to deploy and connect real Twilio/WhatsApp APIs"
             >
               <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Deployment Guide</span>
+              <span className="hidden sm:inline">Deploy Guide</span>
+            </button>
+
+            {/* Bearer Token Inspector */}
+            <button
+              onClick={onOpenTokenInspector}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-medium rounded-lg border border-amber-500/30 transition"
+              title="Inspect & copy your active JWT Bearer Token"
+            >
+              <Key className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Bearer Token</span>
             </button>
 
             {/* Settings */}
@@ -89,6 +110,24 @@ export const Header = ({ onRunAutomation, onOpenSimulator, onOpenSettings, onOpe
             >
               <Settings className="w-4 h-4" />
             </button>
+
+            {/* Owner Chip & Logout Button */}
+            <div className="flex items-center gap-1 pl-2 border-l border-slate-800">
+              <div className="hidden lg:flex items-center gap-1.5 text-xs text-slate-300 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">
+                <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="font-semibold">{owner?.name?.split(' ')[0] || 'Owner'}</span>
+              </div>
+
+              <button
+                onClick={onLogout}
+                className="inline-flex items-center gap-1 p-1.5 bg-rose-600/10 hover:bg-rose-600/20 text-rose-300 rounded-lg border border-rose-500/30 text-xs font-medium transition"
+                title="Log out of owner portal"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
+            </div>
+
           </div>
         </div>
       </div>

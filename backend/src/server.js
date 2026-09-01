@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import cron from 'node-cron';
 import apiRoutes from './routes/apiRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 import { AutomationService } from './services/automationService.js';
 
 dotenv.config();
@@ -15,6 +16,7 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
 
 app.get('/api/health', (req, res) => {

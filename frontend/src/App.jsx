@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from './services/api';
+import { AuthScreen } from './components/AuthScreen';
 import { Header } from './components/Header';
 import { DashboardMetrics } from './components/DashboardMetrics';
 import { TenantsSection } from './components/TenantsSection';
@@ -11,9 +12,20 @@ import { LivePhoneSimulatorModal } from './components/LivePhoneSimulatorModal';
 import { WhatsAppPreviewModal } from './components/WhatsAppPreviewModal';
 import { SettingsModal } from './components/SettingsModal';
 import { DeployGuideModal } from './components/DeployGuideModal';
+import { TokenInspectorModal } from './components/TokenInspectorModal';
 import { CheckCircle2, AlertTriangle, Sparkles } from 'lucide-react';
 
 export default function App() {
+  // Auth state
+  const [token, setToken] = useState(localStorage.getItem('property_rent_token') || null);
+  const [owner, setOwner] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('property_rent_owner') || 'null');
+    } catch (e) {
+      return null;
+    }
+  });
+
   const [activeTab, setActiveTab] = useState('dashboard');
   const [metrics, setMetrics] = useState(null);
   const [tenants, setTenants] = useState([]);
@@ -22,13 +34,14 @@ export default function App() {
   const [rules, setRules] = useState([]);
   const [logs, setLogs] = useState([]);
   const [settings, setSettings] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Modals state
   const [simulatorCallData, setSimulatorCallData] = useState(null);
   const [whatsAppData, setWhatsAppData] = useState(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDeployGuideOpen, setIsDeployGuideOpen] = useState(false);
+  const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
   
   // Automation execution state
   const [isRunningAutomation, setIsRunningAutomation] = useState(false);
@@ -44,6 +57,7 @@ export default function App() {
 
   // Initial load
   const loadAllData = async () => {
+    if (!token) return;
     try {
       setIsLoading(true);
       const [m, t, p, pool, r, l, s] = await Promise.all([
@@ -72,10 +86,26 @@ export default function App() {
   };
 
   useEffect(() => {
-    loadAllData();
-  }, []);
+    if (token) {
+      loadAllData();
+    }
+  }, [token]);
 
-  // Handler: Run Automation Cycle (Evaluates due dates & dispatches reminders)
+  // Auth Handlers
+  const handleLoginSuccess = (ownerData, jwtToken) => {
+    setOwner(ownerData);
+    setToken(jwtToken);
+    showToast(`Welcome back, ${ownerData.name}! Logged in with Bearer token.`);
+  };
+
+  const handleLogout = async () => {
+    await api.logout();
+    setToken(null);
+    setOwner(null);
+    showToast('Logged out successfully.');
+  };
+
+  // Handler: Run Automation Cycle
   const handleRunAutomation = async () => {
     try {
       setIsRunningAutomation(true);
@@ -274,6 +304,11 @@ export default function App() {
     }
   };
 
+  // If not logged in, show Owner Login Screen
+  if (!token) {
+    return <AuthScreen onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-indigo-500 selection:text-white">
       
@@ -291,6 +326,9 @@ export default function App() {
         }}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenDeployGuide={() => setIsDeployGuideOpen(true)}
+        onOpenTokenInspector={() => setIsTokenModalOpen(true)}
+        onLogout={handleLogout}
+        owner={owner}
         isRunningAutomation={isRunningAutomation}
       />
 
@@ -443,9 +481,17 @@ export default function App() {
         onClose={() => setIsDeployGuideOpen(false)}
       />
 
+      {/* JWT Bearer Token Inspector Modal */}
+      <TokenInspectorModal
+        isOpen={isTokenModalOpen}
+        onClose={() => setIsTokenModalOpen(false)}
+        token={token}
+        owner={owner}
+      />
+
       {/* Footer */}
       <footer className="border-t border-slate-800/80 bg-slate-950 py-4 text-center text-xs text-slate-500">
-        Property Rent Automated Collection Engine • Anti-Blocking Caller ID Rotation Pool • Built with Node.js & React
+        Property Rent Automated Collection Engine • JWT Bearer Token Protected • Built with Node.js & React
       </footer>
 
     </div>
