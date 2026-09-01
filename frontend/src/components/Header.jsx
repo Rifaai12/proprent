@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building2, PhoneCall, Settings, BookOpen, Key, LogOut, RefreshCw, UserCheck } from 'lucide-react';
+import { Building2, PhoneCall, Settings, BookOpen, Key, LogOut, RefreshCw, UserCheck, Sparkles } from 'lucide-react';
 
 export const Header = ({ 
   onStartTour,
