@@ -13,31 +13,45 @@ const getAuthHeaders = (extraHeaders = {}) => {
   return headers;
 };
 
+// Safe fetch wrapper that catches network errors and handles 401
+const safeFetch = async (url, options = {}) => {
+  try {
+    const res = await fetch(url, options);
+    if (res.status === 401) {
+      localStorage.removeItem('property_rent_token');
+      localStorage.removeItem('property_rent_owner');
+      window.dispatchEvent(new Event('auth_expired'));
+    }
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    console.error('Fetch error:', err);
+    return { error: err.message };
+  }
+};
+
 export const api = {
   // Authentication
   login: async (email, password) => {
-    const res = await fetch(`${API_BASE}/auth/login`, {
+    return safeFetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
-    return res.json();
   },
 
   register: async (data) => {
-    const res = await fetch(`${API_BASE}/auth/register`, {
+    return safeFetch(`${API_BASE}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    return res.json();
   },
 
   getMe: async () => {
-    const res = await fetch(`${API_BASE}/auth/me`, {
+    return safeFetch(`${API_BASE}/auth/me`, {
       headers: getAuthHeaders(),
     });
-    return res.json();
   },
 
   logout: async () => {
@@ -50,183 +64,158 @@ export const api = {
 
   // Demo Data Reset
   clearDemoData: async () => {
-    const res = await fetch(`${API_BASE}/account/clear-demo`, {
+    return safeFetch(`${API_BASE}/account/clear-demo`, {
       method: 'POST',
       headers: getAuthHeaders(),
     });
-    return res.json();
   },
 
   loadDemoData: async () => {
-    const res = await fetch(`${API_BASE}/account/load-demo`, {
+    return safeFetch(`${API_BASE}/account/load-demo`, {
       method: 'POST',
       headers: getAuthHeaders(),
     });
-    return res.json();
   },
 
   // Dashboard Metrics
   getDashboardMetrics: async () => {
-    const res = await fetch(`${API_BASE}/dashboard-metrics`, { headers: getAuthHeaders() });
-    return res.json();
+    return safeFetch(`${API_BASE}/dashboard-metrics`, { headers: getAuthHeaders() });
   },
 
   // Properties
   getProperties: async () => {
-    const res = await fetch(`${API_BASE}/properties`, { headers: getAuthHeaders() });
-    return res.json();
+    return safeFetch(`${API_BASE}/properties`, { headers: getAuthHeaders() });
   },
   createProperty: async (data) => {
-    const res = await fetch(`${API_BASE}/properties`, {
+    return safeFetch(`${API_BASE}/properties`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return res.json();
   },
   deleteProperty: async (id) => {
-    const res = await fetch(`${API_BASE}/properties/${id}`, {
+    return safeFetch(`${API_BASE}/properties/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
-    return res.json();
   },
 
   // Tenants
   getTenants: async () => {
-    const res = await fetch(`${API_BASE}/tenants`, { headers: getAuthHeaders() });
-    return res.json();
+    return safeFetch(`${API_BASE}/tenants`, { headers: getAuthHeaders() });
   },
   createTenant: async (data) => {
-    const res = await fetch(`${API_BASE}/tenants`, {
+    return safeFetch(`${API_BASE}/tenants`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return res.json();
   },
   updateTenant: async (id, data) => {
-    const res = await fetch(`${API_BASE}/tenants/${id}`, {
+    return safeFetch(`${API_BASE}/tenants/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return res.json();
   },
   deleteTenant: async (id) => {
-    const res = await fetch(`${API_BASE}/tenants/${id}`, {
+    return safeFetch(`${API_BASE}/tenants/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
-    return res.json();
   },
   markAsPaid: async (tenantId, paymentDetails = {}) => {
-    const res = await fetch(`${API_BASE}/tenants/${tenantId}/mark-paid`, {
+    return safeFetch(`${API_BASE}/tenants/${tenantId}/mark-paid`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(paymentDetails),
     });
-    return res.json();
   },
   updateTenantStatus: async (tenantId, status) => {
-    const res = await fetch(`${API_BASE}/tenants/${tenantId}/status`, {
+    return safeFetch(`${API_BASE}/tenants/${tenantId}/status`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ status }),
     });
-    return res.json();
   },
 
   // Phone Number Pool
   getPhonePool: async () => {
-    const res = await fetch(`${API_BASE}/phone-pool`, { headers: getAuthHeaders() });
-    return res.json();
+    return safeFetch(`${API_BASE}/phone-pool`, { headers: getAuthHeaders() });
   },
   addPhoneNumber: async (data) => {
-    const res = await fetch(`${API_BASE}/phone-pool`, {
+    return safeFetch(`${API_BASE}/phone-pool`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return res.json();
   },
   togglePhoneNumber: async (id, is_active) => {
-    const res = await fetch(`${API_BASE}/phone-pool/${id}`, {
+    return safeFetch(`${API_BASE}/phone-pool/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify({ is_active }),
     });
-    return res.json();
   },
   deletePhoneNumber: async (id) => {
-    const res = await fetch(`${API_BASE}/phone-pool/${id}`, {
+    return safeFetch(`${API_BASE}/phone-pool/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
-    return res.json();
   },
 
   // Rules & Automations
   getRules: async () => {
-    const res = await fetch(`${API_BASE}/rules`, { headers: getAuthHeaders() });
-    return res.json();
+    return safeFetch(`${API_BASE}/rules`, { headers: getAuthHeaders() });
   },
   updateRule: async (id, data) => {
-    const res = await fetch(`${API_BASE}/rules/${id}`, {
+    return safeFetch(`${API_BASE}/rules/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return res.json();
   },
   runAutomationCycle: async () => {
-    const res = await fetch(`${API_BASE}/automations/run-now`, {
+    return safeFetch(`${API_BASE}/automations/run-now`, {
       method: 'POST',
       headers: getAuthHeaders(),
     });
-    return res.json();
   },
 
   // Logs
   getLogs: async () => {
-    const res = await fetch(`${API_BASE}/logs`, { headers: getAuthHeaders() });
-    return res.json();
+    return safeFetch(`${API_BASE}/logs`, { headers: getAuthHeaders() });
   },
   clearLogs: async () => {
-    const res = await fetch(`${API_BASE}/logs/clear`, {
+    return safeFetch(`${API_BASE}/logs/clear`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
-    return res.json();
   },
 
   // Payments
   getPayments: async () => {
-    const res = await fetch(`${API_BASE}/payments`, { headers: getAuthHeaders() });
-    return res.json();
+    return safeFetch(`${API_BASE}/payments`, { headers: getAuthHeaders() });
   },
 
   // Settings
   getSettings: async () => {
-    const res = await fetch(`${API_BASE}/settings`, { headers: getAuthHeaders() });
-    return res.json();
+    return safeFetch(`${API_BASE}/settings`, { headers: getAuthHeaders() });
   },
   updateSettings: async (data) => {
-    const res = await fetch(`${API_BASE}/settings`, {
+    return safeFetch(`${API_BASE}/settings`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return res.json();
   },
 
   // Simulator
   triggerSimulatorCall: async ({ tenant_id, channel, custom_script }) => {
-    const res = await fetch(`${API_BASE}/simulator/trigger-call`, {
+    return safeFetch(`${API_BASE}/simulator/trigger-call`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ tenant_id, channel, custom_script }),
     });
-    return res.json();
   },
 };

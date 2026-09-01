@@ -28,6 +28,8 @@ export const AutomationEngine = ({
     setEditingRule(null);
   };
 
+  const rulesList = Array.isArray(rules) ? rules : [];
+
   return (
     <div className="space-y-6">
       
@@ -76,9 +78,9 @@ export const AutomationEngine = ({
         </div>
       )}
 
-      {/* Rules Timeline */}
-      <div className="space-y-4">
-        {rules.map((rule, index) => {
+      {/* Rules Accordion List */}
+      <div className="space-y-3">
+        {rulesList.map((rule, index) => {
           const hasAiCall = rule.channels.includes('ai_call');
           const hasWhatsApp = rule.channels.includes('whatsapp');
           const hasSMS = rule.channels.includes('sms');

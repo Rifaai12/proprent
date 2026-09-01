@@ -35,6 +35,8 @@ export const AntiBlockingPool = ({
     });
   };
 
+  const numbersList = Array.isArray(phoneNumbers) ? phoneNumbers : [];
+
   return (
     <div className="space-y-6">
       
@@ -104,8 +106,8 @@ export const AntiBlockingPool = ({
                 <th className="px-6 py-3 font-semibold text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
-              {phoneNumbers.map(number => (
+            <tbody className="divide-y divide-slate-800 text-xs text-slate-300">
+              {numbersList.map(number => (
                 <tr key={number.id} className="hover:bg-slate-800/40 transition">
                   <td className="px-6 py-3.5">
                     <div className="flex items-center gap-2.5">

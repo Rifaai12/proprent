@@ -60,6 +60,22 @@ export default function App() {
     }, 4000);
   };
 
+  const defaultMetrics = {
+    totalProperties: 0,
+    totalTenants: 0,
+    totalRentExpected: 0,
+    totalRentCollected: 0,
+    collectionRate: 0,
+    overdueCount: 0,
+    dueTodayCount: 0,
+    paidCount: 0,
+    upcomingCount: 0,
+    totalCallsMade: 0,
+    totalWhatsAppSent: 0,
+    activeNumbersCount: 0,
+    currencySymbol: '₹'
+  };
+
   // Initial load
   const loadAllData = async () => {
     if (!token) return;
@@ -75,13 +91,13 @@ export default function App() {
         api.getSettings(),
       ]);
 
-      setMetrics(m);
-      setTenants(t);
-      setProperties(p);
-      setPhoneNumbers(pool);
-      setRules(r);
-      setLogs(l);
-      setSettings(s);
+      setMetrics(m && !m.error ? m : defaultMetrics);
+      setTenants(Array.isArray(t) ? t : []);
+      setProperties(Array.isArray(p) ? p : []);
+      setPhoneNumbers(Array.isArray(pool) ? pool : []);
+      setRules(Array.isArray(r) ? r : []);
+      setLogs(Array.isArray(l) ? l : []);
+      setSettings(s && !s.error ? s : { currency_symbol: '₹' });
     } catch (err) {
       console.error('Failed to load application data:', err);
       showToast('Error connecting to backend server', 'error');
@@ -89,6 +105,16 @@ export default function App() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      setToken(null);
+      setOwner(null);
+      showToast('Session expired. Please log in again.', 'info');
+    };
+    window.addEventListener('auth_expired', handleAuthExpired);
+    return () => window.removeEventListener('auth_expired', handleAuthExpired);
+  }, []);
 
   useEffect(() => {
     if (token) {
@@ -100,7 +126,7 @@ export default function App() {
   const handleLoginSuccess = (ownerData, jwtToken) => {
     setOwner(ownerData);
     setToken(jwtToken);
-    showToast(`Welcome back, ${ownerData.name}! Logged in with Bearer token.`);
+    showToast(`Welcome back, ${ownerData?.name || 'Owner'}! Logged in with Bearer token.`);
   };
 
   const handleLogout = async () => {

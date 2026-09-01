@@ -23,9 +23,12 @@ export const TenantsSection = ({
   const [paymentMode, setPaymentMode] = useState('UPI / Instant Transfer');
   const [paymentNotes, setPaymentNotes] = useState('');
 
+  const tenantList = Array.isArray(tenants) ? tenants : [];
+  const propertyList = Array.isArray(properties) ? properties : [];
+
   // New Tenant Form State
   const [formData, setFormData] = useState({
-    property_id: properties[0]?.id || '',
+    property_id: propertyList[0]?.id || '',
     unit_number: '',
     name: '',
     phone: '',
@@ -38,10 +41,11 @@ export const TenantsSection = ({
     auto_wa_enabled: true
   });
 
-  const filteredTenants = tenants.filter(t => {
+  const filteredTenants = tenantList.filter(t => {
+    if (!t) return false;
     const matchesSearch = 
-      t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.phone.includes(searchTerm) ||
+      (t.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (t.phone || '').includes(searchTerm) ||
       (t.unit_number && t.unit_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (t.property_name && t.property_name.toLowerCase().includes(searchTerm.toLowerCase()));
 

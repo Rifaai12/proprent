@@ -29,6 +29,8 @@ export const PropertiesSection = ({ properties, currency = '₹', onCreateProper
     });
   };
 
+  const propertyList = Array.isArray(properties) ? properties : [];
+
   return (
     <div className="space-y-6">
       
@@ -50,7 +52,14 @@ export const PropertiesSection = ({ properties, currency = '₹', onCreateProper
 
       {/* Properties Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {properties.map(property => (
+        {propertyList.length === 0 ? (
+          <div className="col-span-full p-8 rounded-2xl bg-slate-900/60 border border-slate-800 text-center space-y-3">
+            <Building2 className="w-10 h-10 text-indigo-400 mx-auto" />
+            <h4 className="font-bold text-white text-sm">No Properties Added Yet</h4>
+            <p className="text-xs text-slate-400">Click "Add Property" above to create your first building or apartment.</p>
+          </div>
+        ) : (
+          propertyList.map(property => (
           <div
             key={property.id}
             className="bg-slate-800/80 rounded-2xl p-5 border border-slate-700 hover:border-slate-600 transition flex flex-col justify-between"
@@ -100,7 +109,7 @@ export const PropertiesSection = ({ properties, currency = '₹', onCreateProper
               </button>
             </div>
           </div>
-        ))}
+        )))}
       </div>
 
       {/* Add Property Modal */}

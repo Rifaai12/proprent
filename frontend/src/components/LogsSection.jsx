@@ -5,6 +5,8 @@ import {
 } from 'lucide-react';
 
 export const LogsSection = ({ logs, onClearLogs }) => {
+  const logsList = Array.isArray(logs) ? logs : [];
+
   return (
     <div className="space-y-6">
       
@@ -14,7 +16,7 @@ export const LogsSection = ({ logs, onClearLogs }) => {
           <h2 className="text-base font-bold text-white flex items-center gap-2">
             <span>Automated Activity & Call Audit Trail</span>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              {logs.length} Entries
+              {logsList.length} Entries
             </span>
           </h2>
           <p className="text-xs text-slate-400">
@@ -33,7 +35,7 @@ export const LogsSection = ({ logs, onClearLogs }) => {
 
       {/* Logs Table / Stream */}
       <div className="bg-slate-900/80 rounded-2xl border border-slate-800 overflow-hidden shadow-lg">
-        {logs.length === 0 ? (
+        {logsList.length === 0 ? (
           <div className="p-12 text-center text-slate-500 text-xs">
             No activity logs recorded yet. Trigger a daily cycle or simulate a call to view logs.
           </div>
@@ -51,7 +53,7 @@ export const LogsSection = ({ logs, onClearLogs }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
-                {logs.map(log => {
+                {logsList.map(log => {
                   const isCall = log.channel === 'ai_call';
                   const isWA = log.channel === 'whatsapp';
                   const isKill = log.channel === 'system' || log.status === 'cancelled_paid';
