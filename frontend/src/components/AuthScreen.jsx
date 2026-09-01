@@ -106,11 +106,29 @@ export const AuthScreen = ({ onLoginSuccess }) => {
           </button>
         </div>
 
-        {/* Error Alert */}
+        {/* Error Feedback */}
         {error && (
-          <div className="p-3 bg-rose-950/60 border border-rose-500/40 rounded-xl text-xs text-rose-300 flex items-start gap-2 animate-fade-in">
-            <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
-            <span>{error}</span>
+          <div className="p-3 bg-rose-950/60 border border-rose-500/40 rounded-xl text-xs text-rose-300 space-y-1.5 animate-fade-in">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+            {!isRegister && error.includes('Invalid email') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRegister(true);
+                  if (!name && email) {
+                    const localPart = email.split('@')[0];
+                    setName(localPart.charAt(0).toUpperCase() + localPart.slice(1));
+                  }
+                  setError(null);
+                }}
+                className="w-full text-left font-semibold text-[11px] text-indigo-300 hover:text-indigo-200 underline pt-1"
+              >
+                👉 Don't have an account yet? Click here to Create Account with this email!
+              </button>
+            )}
           </div>
         )}
 

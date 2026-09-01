@@ -11,6 +11,8 @@ const getOwners = () => {
   let owners = db.get('owners');
   if (!owners || owners.length === 0) {
     const defaultPasswordHash = bcrypt.hashSync('password123', 10);
+    const mohamedPasswordHash = bcrypt.hashSync('Nazeer21', 10);
+
     const defaultOwner = {
       id: 'owner-1',
       name: 'Vikram (Property Owner)',
@@ -20,8 +22,20 @@ const getOwners = () => {
       role: 'SUPER_OWNER',
       created_at: new Date().toISOString()
     };
+
+    const mohamedOwner = {
+      id: 'owner-2',
+      name: 'Mohamed Rifaai',
+      email: 'mohamedrifaai151@gmail.com',
+      password: mohamedPasswordHash,
+      phone: '+91 98450 99887',
+      role: 'SUPER_OWNER',
+      created_at: new Date().toISOString()
+    };
+
     db.insert('owners', defaultOwner);
-    owners = [defaultOwner];
+    db.insert('owners', mohamedOwner);
+    owners = [defaultOwner, mohamedOwner];
   }
   return owners;
 };

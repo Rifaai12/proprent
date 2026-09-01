@@ -623,5 +623,25 @@
         "assistant_id": ""
       }
     }
-  }
+  },
+  "owners": [
+    {
+      "id": "owner-1",
+      "name": "Vikram (Property Owner)",
+      "email": "owner@apexproperties.com",
+      "password": "$2b$10$XnHjHnxxy0kBXREcd.66aeS7s6WCO/Mz1pWT7ujG73Xz4QnZc4FNS",
+      "phone": "+91 98000 11223",
+      "role": "SUPER_OWNER",
+      "created_at": "2026-08-01T00:00:00.000Z"
+    },
+    {
+      "id": "owner-2",
+      "name": "Mohamed Rifaai",
+      "email": "mohamedrifaai151@gmail.com",
+      "password": "$2b$10$2CUFVR4.Qh0T7LqC/w75But2QSWBpp3KWsuWkqM3TbI6Fj4Pnekz.",
+      "phone": "+91 98450 99887",
+      "role": "SUPER_OWNER",
+      "created_at": "2026-08-01T00:00:00.000Z"
+    }
+  ]
 }
