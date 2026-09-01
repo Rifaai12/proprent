@@ -2,6 +2,7 @@ import React from 'react';
 import { Building2, PhoneCall, Settings, BookOpen, Key, LogOut, RefreshCw, UserCheck } from 'lucide-react';
 
 export const Header = ({ 
+  onStartTour,
   onRunAutomation, 
   onOpenSimulator, 
   onOpenSettings, 
