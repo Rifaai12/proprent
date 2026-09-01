@@ -138,6 +138,7 @@ export const TenantsSection = ({
 
         {/* Add Tenant Button */}
         <button
+          data-tour="add-tenant-btn"
           onClick={() => setIsAddModalOpen(true)}
           className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-indigo-600/20 transition active:scale-95"
         >
@@ -148,7 +149,7 @@ export const TenantsSection = ({
 
       {/* Tenants Roster Grid / Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredTenants.map(tenant => {
+        {filteredTenants.map((tenant, idx) => {
           const isPaid = tenant.status === 'PAID';
           const isOverdue = tenant.status === 'OVERDUE';
           const isDueToday = tenant.status === 'DUE_TODAY';
@@ -259,6 +260,7 @@ export const TenantsSection = ({
                 {/* One-Click Mark as Paid (Kill Switch) */}
                 {!isPaid ? (
                   <button
+                    data-tour={idx === 0 ? "mark-paid-btn" : undefined}
                     onClick={() => handleOpenMarkPaid(tenant)}
                     className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 active:scale-98 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-700/20 flex items-center justify-center gap-1.5 transition"
                   >
@@ -286,6 +288,7 @@ export const TenantsSection = ({
                 {/* Simulator Trigger Buttons */}
                 <div className="flex items-center gap-2">
                   <button
+                    data-tour={idx === 0 ? "simulate-call-btn" : undefined}
                     onClick={() => onSimulateCall(tenant)}
                     className="flex-1 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 text-xs font-semibold rounded-lg border border-indigo-500/30 flex items-center justify-center gap-1 transition"
                   >

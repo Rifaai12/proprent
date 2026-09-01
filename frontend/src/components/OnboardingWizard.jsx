@@ -22,7 +22,10 @@ export const OnboardingWizard = ({
   const allComplete = step1Complete && step2Complete && step3Complete;
 
   return (
-    <div className="bg-gradient-to-r from-indigo-950/80 via-slate-900 to-slate-900 border-2 border-indigo-500/30 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-5 animate-fade-in relative overflow-hidden">
+    <div 
+      data-tour="welcome-banner"
+      className="bg-gradient-to-r from-indigo-950/80 via-slate-900 to-slate-900 border-2 border-indigo-500/30 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-5 animate-fade-in relative overflow-hidden"
+    >
       
       {/* Background Accent */}
       <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />

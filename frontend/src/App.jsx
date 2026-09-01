@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from './services/api';
 import { AuthScreen } from './components/AuthScreen';
 import { Header } from './components/Header';
+import { GuidedTour } from './components/GuidedTour';
 import { OnboardingWizard } from './components/OnboardingWizard';
 import { InteractiveTutorialModal } from './components/InteractiveTutorialModal';
 import { DashboardMetrics } from './components/DashboardMetrics';
@@ -38,7 +39,8 @@ export default function App() {
   const [settings, setSettings] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Modals state
+  // Modals & Interactive Tour state
+  const [isTourOpen, setIsTourOpen] = useState(false);
   const [simulatorCallData, setSimulatorCallData] = useState(null);
   const [whatsAppData, setWhatsAppData] = useState(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -91,6 +93,12 @@ export default function App() {
   useEffect(() => {
     if (token) {
       loadAllData();
+      // If user hasn't completed tour yet, auto-launch the interactive tour
+      if (!localStorage.getItem('property_rent_tour_completed')) {
+        setTimeout(() => {
+          setIsTourOpen(true);
+        }, 600);
+      }
     }
   }, [token]);
 
@@ -99,6 +107,12 @@ export default function App() {
     setOwner(ownerData);
     setToken(jwtToken);
     showToast(`Welcome back, ${ownerData.name}! Logged in with Bearer token.`);
+    // Launch tour for newly logged in users if not completed
+    if (!localStorage.getItem('property_rent_tour_completed')) {
+      setTimeout(() => {
+        setIsTourOpen(true);
+      }, 500);
+    }
   };
 
   const handleLogout = async () => {
@@ -344,6 +358,7 @@ export default function App() {
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        onStartTour={() => setIsTourOpen(true)}
         onRunAutomation={handleRunAutomation}
         onOpenSimulator={() => {
           if (tenants.length > 0) {
@@ -515,6 +530,13 @@ export default function App() {
         )}
 
       </main>
+
+      {/* Interactive Step-by-Step Spotlight Guided Tour */}
+      <GuidedTour
+        isOpen={isTourOpen}
+        onClose={() => setIsTourOpen(false)}
+        onNavigateTab={setActiveTab}
+      />
 
       {/* Step-by-Step Interactive Tutorial Modal */}
       <InteractiveTutorialModal

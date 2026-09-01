@@ -48,6 +48,7 @@ export const Header = ({
             ].map(tab => (
               <button
                 key={tab.id}
+                data-tour={tab.id === 'pool' ? 'pool-tab' : undefined}
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-3 py-1.5 rounded-lg font-medium transition whitespace-nowrap ${
                   activeTab === tab.id
@@ -62,6 +63,16 @@ export const Header = ({
 
           {/* Action Buttons & Owner Profile */}
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Guided Tour Trigger Button */}
+            <button
+              onClick={onStartTour}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold rounded-lg shadow-md shadow-purple-900/30 transition active:scale-95 animate-pulse"
+              title="Start interactive step-by-step screen walkthrough"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>🎯 Step-by-Step Tour</span>
+            </button>
+
             {/* Run Daily Automation Engine */}
             <button
               onClick={onRunAutomation}
@@ -94,6 +105,7 @@ export const Header = ({
 
             {/* Bearer Token Inspector */}
             <button
+              data-tour="bearer-token-btn"
               onClick={onOpenTokenInspector}
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-medium rounded-lg border border-amber-500/30 transition"
               title="Inspect & copy your active JWT Bearer Token"
