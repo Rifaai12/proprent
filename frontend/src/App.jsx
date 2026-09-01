@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from './services/api';
 import { AuthScreen } from './components/AuthScreen';
 import { Header } from './components/Header';
+import { FCMobileInteractiveTrainer } from './components/FCMobileInteractiveTrainer';
 import { GuidedTour } from './components/GuidedTour';
 import { OnboardingWizard } from './components/OnboardingWizard';
 import { InteractiveTutorialModal } from './components/InteractiveTutorialModal';
@@ -16,7 +17,7 @@ import { WhatsAppPreviewModal } from './components/WhatsAppPreviewModal';
 import { SettingsModal } from './components/SettingsModal';
 import { DeployGuideModal } from './components/DeployGuideModal';
 import { TokenInspectorModal } from './components/TokenInspectorModal';
-import { CheckCircle2, AlertTriangle, Sparkles, Building2, UserPlus, HelpCircle, RefreshCw } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Sparkles, Building2, UserPlus, HelpCircle, RefreshCw, Trophy } from 'lucide-react';
 
 export default function App() {
   // Auth state
@@ -40,6 +41,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
 
   // Modals & Interactive Tour state
+  const [isFCTrainerOpen, setIsFCTrainerOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [simulatorCallData, setSimulatorCallData] = useState(null);
   const [whatsAppData, setWhatsAppData] = useState(null);
@@ -119,6 +121,12 @@ export default function App() {
   useEffect(() => {
     if (token) {
       loadAllData();
+      // Auto-launch FC Mobile trainer for newbie users
+      if (!localStorage.getItem('property_rent_fcmobile_trained')) {
+        setTimeout(() => {
+          setIsFCTrainerOpen(true);
+        }, 1200);
+      }
     }
   }, [token]);
 
@@ -127,6 +135,11 @@ export default function App() {
     setOwner(ownerData);
     setToken(jwtToken);
     showToast(`Welcome back, ${ownerData?.name || 'Owner'}! Logged in with Bearer token.`);
+    if (!localStorage.getItem('property_rent_fcmobile_trained')) {
+      setTimeout(() => {
+        setIsFCTrainerOpen(true);
+      }, 1000);
+    }
   };
 
   const handleLogout = async () => {
@@ -378,6 +391,7 @@ export default function App() {
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        onStartFCTrainer={() => setIsFCTrainerOpen(true)}
         onStartTour={() => setIsTourOpen(true)}
         onRunAutomation={handleRunAutomation}
         onOpenSimulator={() => {
@@ -550,6 +564,14 @@ export default function App() {
         )}
 
       </main>
+
+      {/* FC Mobile Style Interactive Newbie Training Mode */}
+      <FCMobileInteractiveTrainer
+        isActive={isFCTrainerOpen}
+        onClose={() => setIsFCTrainerOpen(false)}
+        onSwitchTab={setActiveTab}
+        tenants={tenantList}
+      />
 
       {/* Interactive Step-by-Step Spotlight Guided Tour */}
       <GuidedTour

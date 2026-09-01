@@ -2,6 +2,7 @@ import React from 'react';
 import { Building2, PhoneCall, Settings, BookOpen, Key, LogOut, RefreshCw, UserCheck, Sparkles } from 'lucide-react';
 
 export const Header = ({ 
+  onStartFCTrainer,
   onStartTour,
   onRunAutomation, 
   onOpenSimulator, 
@@ -64,14 +65,23 @@ export const Header = ({
 
           {/* Action Buttons & Owner Profile */}
           <div className="flex items-center gap-2 flex-wrap">
+            {/* FC Mobile Style Newbie Training Button */}
+            <button
+              onClick={onStartFCTrainer}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black rounded-lg shadow-md shadow-amber-900/40 transition active:scale-95 animate-pulse border border-amber-300"
+              title="Launch FC Mobile-style newbie training drills"
+            >
+              <span>🎮 FC Newbie Training</span>
+            </button>
+
             {/* Guided Tour Trigger Button */}
             <button
               onClick={onStartTour}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold rounded-lg shadow-md shadow-purple-900/30 transition active:scale-95 animate-pulse"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-700 transition"
               title="Start interactive step-by-step screen walkthrough"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>🎯 Step-by-Step Tour</span>
+              <span className="hidden sm:inline">Tour</span>
             </button>
 
             {/* Run Daily Automation Engine */}

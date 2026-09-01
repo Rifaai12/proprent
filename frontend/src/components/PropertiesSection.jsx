@@ -42,6 +42,7 @@ export const PropertiesSection = ({ properties, currency = '₹', onCreateProper
         </div>
 
         <button
+          data-tour="add-property-btn"
           onClick={() => setIsModalOpen(true)}
           className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-indigo-600/20 transition active:scale-95"
         >
