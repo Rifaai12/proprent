@@ -93,12 +93,6 @@ export default function App() {
   useEffect(() => {
     if (token) {
       loadAllData();
-      // If user hasn't completed tour yet, auto-launch the interactive tour
-      if (!localStorage.getItem('property_rent_tour_completed')) {
-        setTimeout(() => {
-          setIsTourOpen(true);
-        }, 600);
-      }
     }
   }, [token]);
 
@@ -107,12 +101,6 @@ export default function App() {
     setOwner(ownerData);
     setToken(jwtToken);
     showToast(`Welcome back, ${ownerData.name}! Logged in with Bearer token.`);
-    // Launch tour for newly logged in users if not completed
-    if (!localStorage.getItem('property_rent_tour_completed')) {
-      setTimeout(() => {
-        setIsTourOpen(true);
-      }, 500);
-    }
   };
 
   const handleLogout = async () => {

@@ -97,7 +97,7 @@ export const GuidedTour = ({ isOpen, onClose, onNavigateTab }) => {
       } catch (err) {
         setTargetRect(null);
       }
-    }, 200);
+    }, 150);
   };
 
   useEffect(() => {
@@ -107,10 +107,8 @@ export const GuidedTour = ({ isOpen, onClose, onNavigateTab }) => {
         if (e.key === 'Escape') onClose();
       };
       window.addEventListener('keydown', handleKey);
-      window.addEventListener('resize', updatePosition);
       return () => {
         window.removeEventListener('keydown', handleKey);
-        window.removeEventListener('resize', updatePosition);
       };
     }
   }, [isOpen, currentStep]);
@@ -136,18 +134,18 @@ export const GuidedTour = ({ isOpen, onClose, onNavigateTab }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 selection:bg-indigo-500 selection:text-white">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 select-none">
       
-      {/* Dark Black Overlay with dismiss click */}
+      {/* Dark Backdrop Overlay */}
       <div 
         onClick={onClose}
-        className="fixed inset-0 bg-black/80 backdrop-blur-md cursor-pointer transition-opacity" 
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm cursor-pointer" 
       />
 
       {/* Target Element Spotlight Cutout (Glow ring) */}
       {targetRect && (
         <div
-          className="fixed pointer-events-none transition-all duration-300 ease-out z-[105] rounded-2xl ring-4 ring-emerald-400 ring-offset-4 ring-offset-slate-950 shadow-[0_0_50px_rgba(16,185,129,0.7)]"
+          className="fixed pointer-events-none transition-all duration-300 ease-out z-[105] rounded-2xl ring-4 ring-emerald-400 ring-offset-4 ring-offset-slate-950 shadow-[0_0_40px_rgba(16,185,129,0.7)]"
           style={{
             top: Math.max(10, targetRect.clientTop - 6),
             left: Math.max(10, targetRect.clientLeft - 6),
@@ -163,8 +161,8 @@ export const GuidedTour = ({ isOpen, onClose, onNavigateTab }) => {
         </div>
       )}
 
-      {/* Center Interactive Tooltip Dialog Box */}
-      <div className="relative z-[110] max-w-lg w-full bg-slate-900 border-2 border-indigo-500/50 rounded-3xl p-6 sm:p-7 shadow-2xl shadow-indigo-950/80 space-y-5 animate-fade-in text-xs text-slate-300">
+      {/* Centered Interactive Tour Dialog Box */}
+      <div className="relative z-[110] max-w-md w-full bg-slate-900 border-2 border-indigo-500/60 rounded-3xl p-6 sm:p-7 shadow-2xl shadow-indigo-950/80 space-y-5 text-xs text-slate-300">
         
         {/* Step Header */}
         <div className="flex items-center justify-between">
@@ -189,8 +187,8 @@ export const GuidedTour = ({ isOpen, onClose, onNavigateTab }) => {
               localStorage.setItem('property_rent_tour_completed', 'true');
               onClose();
             }}
-            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
-            title="Close / Skip Tour"
+            className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition"
+            title="Close Tour"
           >
             <X className="w-5 h-5" />
           </button>
@@ -205,7 +203,7 @@ export const GuidedTour = ({ isOpen, onClose, onNavigateTab }) => {
             <h3 className="text-base font-bold text-white tracking-tight leading-snug">
               {current.title}
             </h3>
-            <p className="text-xs text-slate-300 mt-1.5 leading-relaxed">
+            <p className="text-xs text-slate-300 mt-1.5 leading-relaxed font-sans">
               {current.description}
             </p>
           </div>
