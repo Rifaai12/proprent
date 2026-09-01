@@ -272,9 +272,9 @@ Final Notice for {tenant_name}: Your rent for {property_name} ({unit_number}) is
       currency_code: 'INR',
       country_code: '+91',
       business_name: 'Apex Property Holdings',
-      owner_name: 'Vikram (Owner)',
-      owner_phone: '+91 98000 11223',
-      owner_email: 'owner@apexproperties.com',
+      owner_name: 'Mohamed Rifaai',
+      owner_phone: '+91 98450 99887',
+      owner_email: 'mohamedrifaai151@gmail.com',
       upi_id: 'apexproperties@okaxis',
       bank_account_info: 'HDFC Bank - A/C 50200012345678 - IFSC HDFC0001234',
       simulation_mode: true,
@@ -295,7 +295,27 @@ Final Notice for {tenant_name}: Your rent for {property_name} ({unit_number}) is
           assistant_id: ''
         }
       }
-    }
+    },
+    owners: [
+      {
+        id: 'owner-1',
+        name: 'Vikram (Property Owner)',
+        email: 'owner@apexproperties.com',
+        password: '$2b$10$XnHjHnxxy0kBXREcd.66aeS7s6WCO/Mz1pWT7ujG73Xz4QnZc4FNS',
+        phone: '+91 98000 11223',
+        role: 'SUPER_OWNER',
+        created_at: new Date(Date.now() - 90 * 86400000).toISOString()
+      },
+      {
+        id: 'owner-2',
+        name: 'Mohamed Rifaai',
+        email: 'mohamedrifaai151@gmail.com',
+        password: '$2b$10$2CUFVR4.Qh0T7LqC/w75But2QSWBpp3KWsuWkqM3TbI6Fj4Pnekz.',
+        phone: '+91 98450 99887',
+        role: 'SUPER_OWNER',
+        created_at: new Date(Date.now() - 90 * 86400000).toISOString()
+      }
+    ]
   };
 };
 
