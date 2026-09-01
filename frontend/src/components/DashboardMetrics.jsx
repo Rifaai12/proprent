@@ -2,9 +2,8 @@ import React from 'react';
 import { TrendingUp, AlertTriangle, Clock, CheckCircle2, PhoneForwarded, ShieldCheck, ArrowUpRight, Zap } from 'lucide-react';
 
 export const DashboardMetrics = ({ metrics, onSwitchTab, onRunAutomation }) => {
-  if (!metrics) return null;
-
-  const currency = metrics.currencySymbol || '₹';
+  const data = metrics || {};
+  const currency = data.currencySymbol || '₹';
 
   return (
     <div className="space-y-6">
@@ -45,17 +44,17 @@ export const DashboardMetrics = ({ metrics, onSwitchTab, onRunAutomation }) => {
           </div>
           <div className="mt-2">
             <div className="text-2xl font-bold text-white tracking-tight">
-              {currency}{Number(metrics.totalRentExpected || 0).toLocaleString()}
+              {currency}{Number(data.totalRentExpected || 0).toLocaleString()}
             </div>
             <div className="flex items-center justify-between text-xs text-slate-400 mt-1">
-              <span>Collected: {currency}{Number(metrics.totalRentCollected || 0).toLocaleString()}</span>
-              <span className="font-semibold text-emerald-400">{metrics.collectionRate || 0}%</span>
+              <span>Collected: {currency}{Number(data.totalRentCollected || 0).toLocaleString()}</span>
+              <span className="font-semibold text-emerald-400">{data.collectionRate || 0}%</span>
             </div>
             {/* Progress bar */}
             <div className="w-full h-1.5 bg-slate-700 rounded-full mt-2 overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(100, metrics.collectionRate || 0)}%` }}
+                style={{ width: `${Math.min(100, data.collectionRate || 0)}%` }}
               />
             </div>
           </div>
@@ -71,7 +70,7 @@ export const DashboardMetrics = ({ metrics, onSwitchTab, onRunAutomation }) => {
           </div>
           <div className="mt-2">
             <div className="text-2xl font-bold text-rose-400 tracking-tight">
-              {metrics.overdueCount || 0} <span className="text-xs font-normal text-slate-400">Tenants</span>
+              {data.overdueCount || 0} <span className="text-xs font-normal text-slate-400">Tenants</span>
             </div>
             <p className="text-xs text-rose-300/80 mt-1 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
@@ -90,14 +89,14 @@ export const DashboardMetrics = ({ metrics, onSwitchTab, onRunAutomation }) => {
           </div>
           <div className="mt-2">
             <div className="text-2xl font-bold text-white tracking-tight flex items-baseline gap-2">
-              <span className="text-amber-400">{metrics.dueTodayCount || 0}</span>
+              <span className="text-amber-400">{data.dueTodayCount || 0}</span>
               <span className="text-xs font-normal text-slate-400">due today</span>
               <span className="text-slate-600">/</span>
-              <span className="text-blue-400 text-lg">{metrics.upcomingCount || 0}</span>
+              <span className="text-blue-400 text-lg">{data.upcomingCount || 0}</span>
               <span className="text-xs font-normal text-slate-400">upcoming</span>
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              {metrics.paidCount || 0} Tenants Marked Paid
+              {data.paidCount || 0} Tenants Marked Paid
             </p>
           </div>
         </div>
@@ -112,7 +111,7 @@ export const DashboardMetrics = ({ metrics, onSwitchTab, onRunAutomation }) => {
           </div>
           <div className="mt-2">
             <div className="text-2xl font-bold text-white tracking-tight flex items-baseline gap-1.5">
-              <span>{metrics.activeNumbersCount || 0}</span>
+              <span>{data.activeNumbersCount || 0}</span>
               <span className="text-xs font-normal text-slate-400">Active Rotating DIDs</span>
             </div>
             <p className="text-xs text-emerald-400/90 mt-1 flex items-center gap-1 font-medium">

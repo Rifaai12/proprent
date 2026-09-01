@@ -363,7 +363,13 @@ export default function App() {
     return <AuthScreen onLoginSuccess={handleLoginSuccess} />;
   }
 
-  const isDemoActive = properties.length > 0 && properties.some(p => p.name.includes('Skyline') || p.name.includes('Emerald'));
+  const propList = Array.isArray(properties) ? properties : [];
+  const tenantList = Array.isArray(tenants) ? tenants : [];
+  const poolList = Array.isArray(phoneNumbers) ? phoneNumbers : [];
+  const rulesList = Array.isArray(rules) ? rules : [];
+  const logsList = Array.isArray(logs) ? logs : [];
+
+  const isDemoActive = propList.length > 0 && propList.some(p => ((p && p.name) || '').includes('Skyline') || ((p && p.name) || '').includes('Emerald'));
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-indigo-500 selection:text-white">
@@ -375,8 +381,8 @@ export default function App() {
         onStartTour={() => setIsTourOpen(true)}
         onRunAutomation={handleRunAutomation}
         onOpenSimulator={() => {
-          if (tenants.length > 0) {
-            handleSimulateCall(tenants[0]);
+          if (tenantList.length > 0) {
+            handleSimulateCall(tenantList[0]);
           } else {
             showToast('Please add a tenant first to test simulator', 'info');
           }
@@ -413,9 +419,9 @@ export default function App() {
         {/* Top Interactive Step-by-Step Onboarding Roadmap */}
         <OnboardingWizard
           ownerName={owner?.name}
-          propertiesCount={properties.length}
-          tenantsCount={tenants.length}
-          numbersCount={phoneNumbers.filter(n => n.is_active).length}
+          propertiesCount={propList.length}
+          tenantsCount={tenantList.length}
+          numbersCount={poolList.filter(n => n && n.is_active).length}
           onSwitchTab={setActiveTab}
           onClearDemoData={handleClearDemoData}
           onOpenTutorial={() => setIsTutorialOpen(true)}
@@ -448,7 +454,7 @@ export default function App() {
                 </button>
               </div>
 
-              {tenants.length === 0 ? (
+              {tenantList.length === 0 ? (
                 <div className="p-8 rounded-2xl bg-slate-900/60 border border-slate-800 text-center space-y-3">
                   <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mx-auto">
                     <UserPlus className="w-6 h-6" />
@@ -474,8 +480,8 @@ export default function App() {
                 </div>
               ) : (
                 <TenantsSection
-                  tenants={tenants.filter(t => t.status === 'OVERDUE' || t.status === 'DUE_TODAY')}
-                  properties={properties}
+                  tenants={tenantList.filter(t => t && (t.status === 'OVERDUE' || t.status === 'DUE_TODAY'))}
+                  properties={propList}
                   currency={settings?.currency_symbol || '₹'}
                   onMarkAsPaid={handleMarkAsPaid}
                   onSimulateCall={handleSimulateCall}
@@ -492,8 +498,8 @@ export default function App() {
         {/* Tab 2: Tenants & Rent Tracker */}
         {activeTab === 'tenants' && (
           <TenantsSection
-            tenants={tenants}
-            properties={properties}
+            tenants={tenantList}
+            properties={propList}
             currency={settings?.currency_symbol || '₹'}
             onMarkAsPaid={handleMarkAsPaid}
             onSimulateCall={handleSimulateCall}
@@ -507,7 +513,7 @@ export default function App() {
         {/* Tab 3: Properties */}
         {activeTab === 'properties' && (
           <PropertiesSection
-            properties={properties}
+            properties={propList}
             currency={settings?.currency_symbol || '₹'}
             onCreateProperty={handleCreateProperty}
             onDeleteProperty={handleDeleteProperty}
@@ -517,7 +523,7 @@ export default function App() {
         {/* Tab 4: Anti-Blocking Caller ID Pool */}
         {activeTab === 'pool' && (
           <AntiBlockingPool
-            phoneNumbers={phoneNumbers}
+            phoneNumbers={poolList}
             onAddPhoneNumber={handleAddPhoneNumber}
             onToggleActive={handleTogglePhoneNumber}
             onDeletePhoneNumber={handleDeletePhoneNumber}
@@ -527,7 +533,7 @@ export default function App() {
         {/* Tab 5: Automation Rules */}
         {activeTab === 'automations' && (
           <AutomationEngine
-            rules={rules}
+            rules={rulesList}
             onUpdateRule={handleUpdateRule}
             onRunAutomationCycle={handleRunAutomation}
             isRunningCycle={isRunningAutomation}
@@ -538,7 +544,7 @@ export default function App() {
         {/* Tab 6: Activity Logs */}
         {activeTab === 'logs' && (
           <LogsSection
-            logs={logs}
+            logs={logsList}
             onClearLogs={handleClearLogs}
           />
         )}
