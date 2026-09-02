@@ -2,10 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from './services/api';
 import { AuthScreen } from './components/AuthScreen';
 import { Header } from './components/Header';
-import { FCMobileInteractiveTrainer } from './components/FCMobileInteractiveTrainer';
-import { GuidedTour } from './components/GuidedTour';
-import { OnboardingWizard } from './components/OnboardingWizard';
-import { InteractiveTutorialModal } from './components/InteractiveTutorialModal';
+import { SaaSOnboardingGuide } from './components/SaaSOnboardingGuide';
 import { DashboardMetrics } from './components/DashboardMetrics';
 import { TenantsSection } from './components/TenantsSection';
 import { PropertiesSection } from './components/PropertiesSection';
@@ -16,11 +13,12 @@ import { LivePhoneSimulatorModal } from './components/LivePhoneSimulatorModal';
 import { WhatsAppPreviewModal } from './components/WhatsAppPreviewModal';
 import { SettingsModal } from './components/SettingsModal';
 import { DeployGuideModal } from './components/DeployGuideModal';
-import { TokenInspectorModal } from './components/TokenInspectorModal';
-import { CheckCircle2, AlertTriangle, Sparkles, Building2, UserPlus, HelpCircle, RefreshCw, Trophy } from 'lucide-react';
+import { 
+  CheckCircle2, AlertTriangle, Building2, UserPlus, RefreshCw, AlertCircle
+} from 'lucide-react';
 
 export default function App() {
-  // Auth state
+  // Auth & Session State
   const [token, setToken] = useState(localStorage.getItem('property_rent_token') || null);
   const [owner, setOwner] = useState(() => {
     try {
@@ -29,7 +27,9 @@ export default function App() {
       return null;
     }
   });
+  const [isVerifyingSession, setIsVerifyingSession] = useState(Boolean(token));
 
+  // Application Data State
   const [activeTab, setActiveTab] = useState('dashboard');
   const [metrics, setMetrics] = useState(null);
   const [tenants, setTenants] = useState([]);
@@ -37,18 +37,17 @@ export default function App() {
   const [phoneNumbers, setPhoneNumbers] = useState([]);
   const [rules, setRules] = useState([]);
   const [logs, setLogs] = useState([]);
+  const [payments, setPayments] = useState([]);
   const [settings, setSettings] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState(null);
 
-  // Modals & Interactive Tour state
-  const [isFCTrainerOpen, setIsFCTrainerOpen] = useState(false);
-  const [isTourOpen, setIsTourOpen] = useState(false);
+  // Modals state
   const [simulatorCallData, setSimulatorCallData] = useState(null);
   const [whatsAppData, setWhatsAppData] = useState(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isDeployGuideOpen, setIsDeployGuideOpen] = useState(false);
-  const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
-  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+  const [isOnboardingDismissed, setIsOnboardingDismissed] = useState(false);
   
   // Automation execution state
   const [isRunningAutomation, setIsRunningAutomation] = useState(false);
@@ -78,20 +77,63 @@ export default function App() {
     currencySymbol: '₹'
   };
 
-  // Initial load
+  // 1. Session Verification on App Mount
+  useEffect(() => {
+    const verifySession = async () => {
+      const storedToken = localStorage.getItem('property_rent_token');
+      if (!storedToken) {
+        setIsVerifyingSession(false);
+        return;
+      }
+
+      try {
+        const res = await api.getMe();
+        if (res.owner) {
+          setOwner(res.owner);
+          localStorage.setItem('property_rent_owner', JSON.stringify(res.owner));
+          // Load dismissed state for this owner
+          const dismissed = localStorage.getItem(`property_rent_onboarding_dismissed_${res.owner.id}`) === 'true';
+          setIsOnboardingDismissed(dismissed);
+        } else {
+          // Token invalid or expired
+          localStorage.removeItem('property_rent_token');
+          localStorage.removeItem('property_rent_owner');
+          setToken(null);
+          setOwner(null);
+        }
+      } catch (err) {
+        console.error('Session verification error:', err);
+      } finally {
+        setIsVerifyingSession(false);
+      }
+    };
+
+    verifySession();
+  }, []);
+
+  // 2. Load all owner-scoped data
   const loadAllData = async () => {
     if (!token) return;
     try {
       setIsLoading(true);
-      const [m, t, p, pool, r, l, s] = await Promise.all([
+      setLoadError(null);
+      const [m, t, p, pool, r, l, pay, s] = await Promise.all([
         api.getDashboardMetrics(),
         api.getTenants(),
         api.getProperties(),
         api.getPhonePool(),
         api.getRules(),
         api.getLogs(),
+        api.getPayments(),
         api.getSettings(),
       ]);
+
+      if (m?.error || t?.error || p?.error) {
+        const errMsg = m?.error || t?.error || p?.error;
+        if (!errMsg.includes('401')) {
+          setLoadError(errMsg);
+        }
+      }
 
       setMetrics(m && !m.error ? m : defaultMetrics);
       setTenants(Array.isArray(t) ? t : []);
@@ -99,10 +141,11 @@ export default function App() {
       setPhoneNumbers(Array.isArray(pool) ? pool : []);
       setRules(Array.isArray(r) ? r : []);
       setLogs(Array.isArray(l) ? l : []);
+      setPayments(Array.isArray(pay) ? pay : []);
       setSettings(s && !s.error ? s : { currency_symbol: '₹' });
     } catch (err) {
       console.error('Failed to load application data:', err);
-      showToast('Error connecting to backend server', 'error');
+      setLoadError('Unable to connect to server. Please check your network and retry.');
     } finally {
       setIsLoading(false);
     }
@@ -112,7 +155,7 @@ export default function App() {
     const handleAuthExpired = () => {
       setToken(null);
       setOwner(null);
-      showToast('Session expired. Please log in again.', 'info');
+      showToast('Your session has expired. Please sign in again.', 'info');
     };
     window.addEventListener('auth_expired', handleAuthExpired);
     return () => window.removeEventListener('auth_expired', handleAuthExpired);
@@ -121,12 +164,6 @@ export default function App() {
   useEffect(() => {
     if (token) {
       loadAllData();
-      // Auto-launch FC Mobile trainer for newbie users
-      if (!localStorage.getItem('property_rent_fcmobile_trained')) {
-        setTimeout(() => {
-          setIsFCTrainerOpen(true);
-        }, 1200);
-      }
     }
   }, [token]);
 
@@ -134,41 +171,49 @@ export default function App() {
   const handleLoginSuccess = (ownerData, jwtToken) => {
     setOwner(ownerData);
     setToken(jwtToken);
-    showToast(`Welcome back, ${ownerData?.name || 'Owner'}! Logged in with Bearer token.`);
-    if (!localStorage.getItem('property_rent_fcmobile_trained')) {
-      setTimeout(() => {
-        setIsFCTrainerOpen(true);
-      }, 1000);
-    }
+    const dismissed = localStorage.getItem(`property_rent_onboarding_dismissed_${ownerData.id}`) === 'true';
+    setIsOnboardingDismissed(dismissed);
+    showToast(`Welcome, ${ownerData?.name || 'Owner'}!`);
   };
 
   const handleLogout = async () => {
     await api.logout();
     setToken(null);
     setOwner(null);
-    showToast('Logged out successfully.');
+    setTenants([]);
+    setProperties([]);
+    setPhoneNumbers([]);
+    setRules([]);
+    setLogs([]);
+    setPayments([]);
+    setMetrics(null);
+    showToast('Signed out successfully.');
   };
 
-  // Handler: Clear Demo Data (Start Fresh for new account)
-  const handleClearDemoData = async () => {
-    if (!window.confirm('Clear all sample properties & tenants to start fresh with your own real data?')) return;
-    try {
-      await api.clearDemoData();
-      await loadAllData();
-      showToast('Demo data cleared! You now have a clean slate to add your properties.');
-    } catch (err) {
-      showToast('Failed to clear demo data: ' + err.message, 'error');
+  // Handler: Dismiss Onboarding
+  const handleDismissOnboarding = () => {
+    setIsOnboardingDismissed(true);
+    if (owner?.id) {
+      localStorage.setItem(`property_rent_onboarding_dismissed_${owner.id}`, 'true');
     }
   };
 
-  // Handler: Load Demo Data
+  // Handler: Re-open Onboarding
+  const handleOpenOnboarding = () => {
+    setIsOnboardingDismissed(false);
+    if (owner?.id) {
+      localStorage.removeItem(`property_rent_onboarding_dismissed_${owner.id}`);
+    }
+  };
+
+  // Handler: Load Demo Data into Owner Account
   const handleLoadDemoData = async () => {
     try {
       await api.loadDemoData();
       await loadAllData();
-      showToast('Sample demo data loaded successfully!');
+      showToast('Sample properties & tenants loaded into your account.');
     } catch (err) {
-      showToast('Failed to load demo data', 'error');
+      showToast('Failed to load sample data: ' + err.message, 'error');
     }
   };
 
@@ -179,7 +224,7 @@ export default function App() {
       const res = await api.runAutomationCycle();
       setLastCycleResults(res);
       await loadAllData();
-      showToast(`Automation cycle completed! Processed ${res.executed_count} actions.`);
+      showToast(`Automation cycle completed! Processed ${res.executed_count || 0} reminder actions.`);
     } catch (err) {
       showToast('Failed to run automation cycle: ' + err.message, 'error');
     } finally {
@@ -187,18 +232,18 @@ export default function App() {
     }
   };
 
-  // Handler: Mark As Paid (The Core Kill-Switch)
+  // Handler: Mark As Paid (Instant Kill-Switch)
   const handleMarkAsPaid = async (tenantId, paymentDetails) => {
     try {
       const res = await api.markAsPaid(tenantId, paymentDetails);
       await loadAllData();
-      showToast('Rent marked as PAID! All calls & messages immediately stopped for this tenant.');
+      showToast('Rent marked as PAID! All reminders halted and receipt dispatched.');
     } catch (err) {
       showToast('Failed to mark as paid: ' + err.message, 'error');
     }
   };
 
-  // Handler: Toggle tenant status for testing
+  // Handler: Update Tenant Status
   const handleStatusChange = async (tenantId, newStatus) => {
     try {
       await api.updateTenantStatus(tenantId, newStatus);
@@ -209,7 +254,7 @@ export default function App() {
     }
   };
 
-  // Handler: Trigger Live Simulator AI Call (Rotates Caller ID)
+  // Handler: Trigger Live / Simulator AI Call
   const handleSimulateCall = async (tenant) => {
     try {
       const res = await api.triggerSimulatorCall({
@@ -232,11 +277,11 @@ export default function App() {
         await loadAllData();
       }
     } catch (err) {
-      showToast('Failed to trigger simulator call: ' + err.message, 'error');
+      showToast('Failed to trigger call notice: ' + err.message, 'error');
     }
   };
 
-  // Handler: Trigger WhatsApp Preview
+  // Handler: Trigger WhatsApp Notice Preview
   const handleSimulateWhatsApp = async (tenant) => {
     try {
       const res = await api.triggerSimulatorCall({
@@ -254,22 +299,21 @@ export default function App() {
         await loadAllData();
       }
     } catch (err) {
-      showToast('Failed to generate WhatsApp preview: ' + err.message, 'error');
+      showToast('Failed to generate WhatsApp notice: ' + err.message, 'error');
     }
   };
 
-  // Handler: Create Property
+  // Property CRUD
   const handleCreateProperty = async (data) => {
     try {
       await api.createProperty(data);
       await loadAllData();
       showToast('Property created successfully!');
     } catch (err) {
-      showToast('Failed to create property', 'error');
+      showToast('Failed to create property: ' + err.message, 'error');
     }
   };
 
-  // Handler: Delete Property
   const handleDeleteProperty = async (id) => {
     if (!window.confirm('Are you sure you want to delete this property?')) return;
     try {
@@ -281,18 +325,17 @@ export default function App() {
     }
   };
 
-  // Handler: Create Tenant
+  // Tenant CRUD
   const handleCreateTenant = async (data) => {
     try {
       await api.createTenant(data);
       await loadAllData();
       showToast('Tenant added successfully!');
     } catch (err) {
-      showToast('Failed to add tenant', 'error');
+      showToast('Failed to add tenant: ' + err.message, 'error');
     }
   };
 
-  // Handler: Delete Tenant
   const handleDeleteTenant = async (id) => {
     if (!window.confirm('Are you sure you want to delete this tenant?')) return;
     try {
@@ -304,30 +347,28 @@ export default function App() {
     }
   };
 
-  // Handler: Add Phone Number to Pool
+  // Phone Pool CRUD
   const handleAddPhoneNumber = async (data) => {
     try {
       await api.addPhoneNumber(data);
       await loadAllData();
-      showToast('New caller ID line added to pool!');
+      showToast('Caller line added to pool!');
     } catch (err) {
       showToast('Failed to add phone number', 'error');
     }
   };
 
-  // Handler: Toggle Phone Number Active
   const handleTogglePhoneNumber = async (id, is_active) => {
     try {
       await api.togglePhoneNumber(id, is_active);
       await loadAllData();
     } catch (err) {
-      showToast('Failed to toggle line status', 'error');
+      showToast('Failed to update line status', 'error');
     }
   };
 
-  // Handler: Delete Phone Number
   const handleDeletePhoneNumber = async (id) => {
-    if (!window.confirm('Delete this number from the pool?')) return;
+    if (!window.confirm('Remove this number from your pool?')) return;
     try {
       await api.deletePhoneNumber(id);
       await loadAllData();
@@ -337,7 +378,7 @@ export default function App() {
     }
   };
 
-  // Handler: Update Rule
+  // Rules CRUD
   const handleUpdateRule = async (id, data) => {
     try {
       await api.updateRule(id, data);
@@ -348,9 +389,9 @@ export default function App() {
     }
   };
 
-  // Handler: Clear Logs
+  // Logs
   const handleClearLogs = async () => {
-    if (!window.confirm('Clear all activity logs?')) return;
+    if (!window.confirm('Clear all activity logs for your account?')) return;
     try {
       await api.clearLogs();
       await loadAllData();
@@ -360,7 +401,7 @@ export default function App() {
     }
   };
 
-  // Handler: Save Settings
+  // Settings
   const handleSaveSettings = async (newSettings) => {
     try {
       await api.updateSettings(newSettings);
@@ -371,7 +412,17 @@ export default function App() {
     }
   };
 
-  // If not logged in, show Owner Login Screen
+  // Loading Screen while validating session
+  if (isVerifyingSession) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 text-slate-400">
+        <div className="w-10 h-10 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-xs font-medium">Validating secure session...</p>
+      </div>
+    );
+  }
+
+  // If not logged in, show Owner Login / Register Screen
   if (!token) {
     return <AuthScreen onLoginSuccess={handleLoginSuccess} />;
   }
@@ -381,8 +432,7 @@ export default function App() {
   const poolList = Array.isArray(phoneNumbers) ? phoneNumbers : [];
   const rulesList = Array.isArray(rules) ? rules : [];
   const logsList = Array.isArray(logs) ? logs : [];
-
-  const isDemoActive = propList.length > 0 && propList.some(p => ((p && p.name) || '').includes('Skyline') || ((p && p.name) || '').includes('Emerald'));
+  const paymentsList = Array.isArray(payments) ? payments : [];
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-indigo-500 selection:text-white">
@@ -391,19 +441,17 @@ export default function App() {
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onStartFCTrainer={() => setIsFCTrainerOpen(true)}
-        onStartTour={() => setIsTourOpen(true)}
+        onOpenSetupGuide={handleOpenOnboarding}
         onRunAutomation={handleRunAutomation}
         onOpenSimulator={() => {
           if (tenantList.length > 0) {
             handleSimulateCall(tenantList[0]);
           } else {
-            showToast('Please add a tenant first to test simulator', 'info');
+            showToast('Please add a tenant first to test simulated notices', 'info');
           }
         }}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenDeployGuide={() => setIsDeployGuideOpen(true)}
-        onOpenTokenInspector={() => setIsTokenModalOpen(true)}
         onLogout={handleLogout}
         owner={owner}
         isRunningAutomation={isRunningAutomation}
@@ -430,16 +478,37 @@ export default function App() {
           </div>
         )}
 
-        {/* Top Interactive Step-by-Step Onboarding Roadmap */}
-        <OnboardingWizard
+        {/* Error Alert Banner if Data Fetch Failed */}
+        {loadError && (
+          <div className="p-4 rounded-xl bg-rose-950/60 border border-rose-500/40 text-xs text-rose-200 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+              <span>{loadError}</span>
+            </div>
+            <button
+              onClick={loadAllData}
+              className="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-lg transition"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Data-Aware SaaS Onboarding Guide */}
+        <SaaSOnboardingGuide
           ownerName={owner?.name}
           propertiesCount={propList.length}
           tenantsCount={tenantList.length}
-          numbersCount={poolList.filter(n => n && n.is_active).length}
-          onSwitchTab={setActiveTab}
-          onClearDemoData={handleClearDemoData}
-          onOpenTutorial={() => setIsTutorialOpen(true)}
-          isDemoDataActive={isDemoActive}
+          numbersCount={poolList.filter(n => n?.is_active).length}
+          rulesCount={rulesList.length}
+          logsCount={logsList.length}
+          paymentsCount={paymentsList.length}
+          onNavigateTab={setActiveTab}
+          onOpenAddProperty={() => setActiveTab('properties')}
+          onOpenAddTenant={() => setActiveTab('tenants')}
+          onLoadDemoData={handleLoadDemoData}
+          onDismiss={handleDismissOnboarding}
+          isDismissed={isOnboardingDismissed}
         />
 
         {/* Tab 1: Dashboard Overview */}
@@ -457,7 +526,7 @@ export default function App() {
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                   <span>Priority Collection Actions</span>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30">
-                    Immediate Action
+                    Immediate Follow-Up
                   </span>
                 </h3>
                 <button
@@ -475,14 +544,14 @@ export default function App() {
                   </div>
                   <h4 className="font-bold text-white text-sm">No Tenants Added Yet</h4>
                   <p className="text-xs text-slate-400 max-w-md mx-auto">
-                    Click "Add Tenant" to register your first tenant, or click "Load Sample Data" to explore how automatic calling works.
+                    Add your first tenant to track monthly rent schedules, or load sample data to explore automated calling workflows.
                   </p>
                   <div className="flex items-center justify-center gap-2 pt-2">
                     <button
                       onClick={() => setActiveTab('tenants')}
                       className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg transition"
                     >
-                      + Add Your First Tenant
+                      + Add Tenant
                     </button>
                     <button
                       onClick={handleLoadDemoData}
@@ -534,7 +603,7 @@ export default function App() {
           />
         )}
 
-        {/* Tab 4: Anti-Blocking Caller ID Pool */}
+        {/* Tab 4: Anti-Blocking Caller Numbers Pool */}
         {activeTab === 'pool' && (
           <AntiBlockingPool
             phoneNumbers={poolList}
@@ -564,28 +633,6 @@ export default function App() {
         )}
 
       </main>
-
-      {/* FC Mobile Style Interactive Newbie Training Mode */}
-      <FCMobileInteractiveTrainer
-        isActive={isFCTrainerOpen}
-        onClose={() => setIsFCTrainerOpen(false)}
-        onSwitchTab={setActiveTab}
-        tenants={tenantList}
-      />
-
-      {/* Interactive Step-by-Step Spotlight Guided Tour */}
-      <GuidedTour
-        isOpen={isTourOpen}
-        onClose={() => setIsTourOpen(false)}
-        onNavigateTab={setActiveTab}
-      />
-
-      {/* Step-by-Step Interactive Tutorial Modal */}
-      <InteractiveTutorialModal
-        isOpen={isTutorialOpen}
-        onClose={() => setIsTutorialOpen(false)}
-        onStartAction={() => setActiveTab('properties')}
-      />
 
       {/* Interactive Phone Simulator Modal */}
       <LivePhoneSimulatorModal
@@ -618,17 +665,9 @@ export default function App() {
         onClose={() => setIsDeployGuideOpen(false)}
       />
 
-      {/* JWT Bearer Token Inspector Modal */}
-      <TokenInspectorModal
-        isOpen={isTokenModalOpen}
-        onClose={() => setIsTokenModalOpen(false)}
-        token={token}
-        owner={owner}
-      />
-
       {/* Footer */}
       <footer className="border-t border-slate-800/80 bg-slate-950 py-4 text-center text-xs text-slate-500">
-        Property Rent Automated Collection Engine • Anti-Blocking DID Pool • JWT Protected • Built with Node.js & React
+        PropertyRent.AI • Multi-Tenant Property Operations Platform • End-to-End Encrypted Session
       </footer>
 
     </div>

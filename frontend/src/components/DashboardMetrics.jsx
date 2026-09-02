@@ -8,23 +8,23 @@ export const DashboardMetrics = ({ metrics, onSwitchTab, onRunAutomation }) => {
   return (
     <div className="space-y-6">
       {/* Top Banner: Automation & Kill-Switch Explainer Banner */}
-      <div className="bg-gradient-to-r from-indigo-900/50 via-slate-900 to-emerald-950/40 border border-indigo-500/20 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-indigo-900/40 via-slate-900 to-emerald-950/30 border border-indigo-500/20 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-start gap-3.5">
           <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 mt-0.5">
             <Zap className="w-5 h-5" />
           </div>
           <div>
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-              Anti-Blocking Calling & Instant Kill-Switch System Active
+              Automated Rent Reminders & Smart Rotation Active
             </h3>
             <p className="text-xs text-slate-400 mt-0.5 max-w-2xl leading-relaxed">
-              When rent is due, automated AI calls and WhatsApp notices trigger using rotated virtual caller IDs so tenants cannot block the calls. The instant you mark a tenant as <span className="text-emerald-400 font-semibold">"Paid"</span>, all automated calling queues immediately shut down.
+              When rent is due, automated bilingual AI voice calls and WhatsApp notices trigger using rotated caller numbers to ensure delivery. The moment you mark a tenant as <span className="text-emerald-400 font-semibold">"Paid"</span>, all automated reminder queues immediately stop.
             </p>
           </div>
         </div>
         <button
           onClick={() => onSwitchTab('tenants')}
-          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white rounded-lg transition whitespace-nowrap flex items-center gap-1 self-end md:self-auto"
+          className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white rounded-lg transition whitespace-nowrap flex items-center gap-1 self-end md:self-auto"
         >
           <span>View Tenant Dues</span>
           <ArrowUpRight className="w-3.5 h-3.5" />
@@ -74,7 +74,7 @@ export const DashboardMetrics = ({ metrics, onSwitchTab, onRunAutomation }) => {
             </div>
             <p className="text-xs text-rose-300/80 mt-1 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
-              Active Calling & SMS Escalation
+              Follow-Up Calling & SMS Active
             </p>
           </div>
         </div>
@@ -101,10 +101,10 @@ export const DashboardMetrics = ({ metrics, onSwitchTab, onRunAutomation }) => {
           </div>
         </div>
 
-        {/* Card 4: Anti-Blocking Rotation Number Pool */}
+        {/* Card 4: Rotated Caller Numbers */}
         <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 hover:border-slate-600 transition">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-400">Anti-Blocking Caller Pool</span>
+            <span className="text-xs font-medium text-slate-400">Rotated Caller Lines</span>
             <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">
               <PhoneForwarded className="w-4 h-4" />
             </div>
@@ -112,11 +112,11 @@ export const DashboardMetrics = ({ metrics, onSwitchTab, onRunAutomation }) => {
           <div className="mt-2">
             <div className="text-2xl font-bold text-white tracking-tight flex items-baseline gap-1.5">
               <span>{data.activeNumbersCount || 0}</span>
-              <span className="text-xs font-normal text-slate-400">Active Rotating DIDs</span>
+              <span className="text-xs font-normal text-slate-400">Active Lines</span>
             </div>
             <p className="text-xs text-emerald-400/90 mt-1 flex items-center gap-1 font-medium">
               <ShieldCheck className="w-3.5 h-3.5" />
-              100% Anti-Spam Protection
+              Spam-Protection Enabled
             </p>
           </div>
         </div>

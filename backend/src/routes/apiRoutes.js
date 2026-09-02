@@ -3,15 +3,20 @@ import { db } from '../config/db.js';
 import { NumberPoolService } from '../services/numberPoolService.js';
 import { AutomationService } from '../services/automationService.js';
 import { TelecomService } from '../services/telecomService.js';
+import { requireAuth } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-// ================= PROPERTIES ================= //
-router.get('/properties', (req, res) => {
-  const properties = db.get('properties');
-  const tenants = db.get('tenants');
+// Enforce authentication on all business routes
+router.use(requireAuth);
 
-  // Enrich with unit counts and active collection metrics
+// ================= PROPERTIES (OWNER-SCOPED) ================= //
+router.get('/properties', (req, res) => {
+  const ownerId = req.owner.id;
+  const properties = db.getByOwner('properties', ownerId);
+  const tenants = db.getByOwner('tenants', ownerId);
+
+  // Enrich with unit counts and collection metrics for this owner
   const enriched = properties.map(prop => {
     const propTenants = tenants.filter(t => t.property_id === prop.id);
     const totalRent = propTenants.reduce((sum, t) => sum + Number(t.rent_amount || 0), 0);
@@ -29,12 +34,13 @@ router.get('/properties', (req, res) => {
 });
 
 router.post('/properties', (req, res) => {
+  const ownerId = req.owner.id;
   const { name, type, address, city, state, units_count, default_rent } = req.body;
   if (!name) return res.status(400).json({ error: 'Property name is required' });
 
   const newProperty = {
-    id: `prop-${Date.now()}`,
-    name,
+    id: `prop-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    name: name.trim(),
     type: type || 'Apartment',
     address: address || '',
     city: city || '',
@@ -44,32 +50,35 @@ router.post('/properties', (req, res) => {
     created_at: new Date().toISOString()
   };
 
-  db.insert('properties', newProperty);
+  db.insertForOwner('properties', ownerId, newProperty);
   res.status(201).json(newProperty);
 });
 
 router.put('/properties/:id', (req, res) => {
-  const updated = db.update('properties', req.params.id, req.body);
-  if (!updated) return res.status(404).json({ error: 'Property not found' });
+  const ownerId = req.owner.id;
+  const updated = db.updateForOwner('properties', ownerId, req.params.id, req.body);
+  if (!updated) return res.status(404).json({ error: 'Property not found or access denied' });
   res.json(updated);
 });
 
 router.delete('/properties/:id', (req, res) => {
-  const deleted = db.delete('properties', req.params.id);
-  if (!deleted) return res.status(404).json({ error: 'Property not found' });
+  const ownerId = req.owner.id;
+  const deleted = db.deleteForOwner('properties', ownerId, req.params.id);
+  if (!deleted) return res.status(404).json({ error: 'Property not found or access denied' });
   res.json({ success: true, message: 'Property deleted' });
 });
 
-// ================= TENANTS ================= //
+// ================= TENANTS (OWNER-SCOPED) ================= //
 router.get('/tenants', (req, res) => {
-  const tenants = db.get('tenants');
-  const properties = db.get('properties');
+  const ownerId = req.owner.id;
+  const tenants = db.getByOwner('tenants', ownerId);
+  const properties = db.getByOwner('properties', ownerId);
 
   const enriched = tenants.map(tenant => {
     const prop = properties.find(p => p.id === tenant.property_id);
     return {
       ...tenant,
-      property_name: prop ? prop.name : (tenant.property_name || 'Unassigned')
+      property_name: prop ? prop.name : (tenant.property_name || 'Unassigned Property')
     };
   });
 
@@ -77,21 +86,22 @@ router.get('/tenants', (req, res) => {
 });
 
 router.post('/tenants', (req, res) => {
+  const ownerId = req.owner.id;
   const { property_id, unit_number, name, phone, email, rent_amount, due_day, grace_days, auto_call_enabled, auto_sms_enabled, auto_wa_enabled } = req.body;
   if (!name || !phone || !rent_amount) {
     return res.status(400).json({ error: 'Name, phone number, and rent amount are required' });
   }
 
-  const prop = db.find('properties', p => p.id === property_id);
+  const prop = property_id ? db.findByOwner('properties', ownerId, p => p.id === property_id) : null;
 
   const newTenant = {
-    id: `ten-${Date.now()}`,
+    id: `ten-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     property_id: property_id || '',
     property_name: prop ? prop.name : 'Primary Property',
     unit_number: unit_number || '101',
-    name,
-    phone,
-    email: email || '',
+    name: name.trim(),
+    phone: phone.trim(),
+    email: email ? email.trim() : '',
     rent_amount: Number(rent_amount),
     due_day: Number(due_day) || 1,
     grace_days: Number(grace_days) || 3,
@@ -103,94 +113,110 @@ router.post('/tenants', (req, res) => {
     created_at: new Date().toISOString()
   };
 
-  db.insert('tenants', newTenant);
+  db.insertForOwner('tenants', ownerId, newTenant);
   res.status(201).json(newTenant);
 });
 
 router.put('/tenants/:id', (req, res) => {
-  const updated = db.update('tenants', req.params.id, req.body);
-  if (!updated) return res.status(404).json({ error: 'Tenant not found' });
+  const ownerId = req.owner.id;
+  const updated = db.updateForOwner('tenants', ownerId, req.params.id, req.body);
+  if (!updated) return res.status(404).json({ error: 'Tenant not found or access denied' });
   res.json(updated);
 });
 
 router.delete('/tenants/:id', (req, res) => {
-  const deleted = db.delete('tenants', req.params.id);
-  if (!deleted) return res.status(404).json({ error: 'Tenant not found' });
+  const ownerId = req.owner.id;
+  const deleted = db.deleteForOwner('tenants', ownerId, req.params.id);
+  if (!deleted) return res.status(404).json({ error: 'Tenant not found or access denied' });
   res.json({ success: true, message: 'Tenant deleted' });
 });
 
-// ================= MARK AS PAID (KILL SWITCH) ================= //
+// ================= MARK AS PAID (INSTANT REMINDER STOP TRIGGER) ================= //
 router.post('/tenants/:id/mark-paid', async (req, res) => {
+  const ownerId = req.owner.id;
   try {
-    const result = await AutomationService.markAsPaid(req.params.id, req.body || {});
+    const result = await AutomationService.markAsPaid(ownerId, req.params.id, req.body || {});
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Update tenant status directly (for testing/simulations)
+// Update tenant status directly (for simulation & manual management)
 router.post('/tenants/:id/status', (req, res) => {
+  const ownerId = req.owner.id;
   const { status } = req.body;
   if (!status) return res.status(400).json({ error: 'Status is required' });
-  const updated = db.update('tenants', req.params.id, { status });
+  const updated = db.updateForOwner('tenants', ownerId, req.params.id, { status });
+  if (!updated) return res.status(404).json({ error: 'Tenant not found or access denied' });
   res.json(updated);
 });
 
-// ================= ANTI-BLOCKING PHONE NUMBER POOL ================= //
+// ================= SMART CALLER ID POOL ================= //
 router.get('/phone-pool', (req, res) => {
-  const pool = NumberPoolService.getPool();
+  const ownerId = req.owner.id;
+  const pool = NumberPoolService.getPool(ownerId);
   res.json(pool);
 });
 
 router.post('/phone-pool', (req, res) => {
+  const ownerId = req.owner.id;
   const { phone_number, label, provider } = req.body;
   if (!phone_number) return res.status(400).json({ error: 'Phone number is required' });
-  const created = NumberPoolService.addNumber({ phone_number, label, provider });
+  const created = NumberPoolService.addNumber(ownerId, { phone_number, label, provider });
   res.status(201).json(created);
 });
 
 router.put('/phone-pool/:id', (req, res) => {
-  const updated = NumberPoolService.updateNumber(req.params.id, req.body);
-  if (!updated) return res.status(404).json({ error: 'Number not found' });
+  const ownerId = req.owner.id;
+  const updated = NumberPoolService.updateNumber(ownerId, req.params.id, req.body);
+  if (!updated) return res.status(404).json({ error: 'Number not found or access denied' });
   res.json(updated);
 });
 
 router.delete('/phone-pool/:id', (req, res) => {
-  const deleted = NumberPoolService.deleteNumber(req.params.id);
-  if (!deleted) return res.status(404).json({ error: 'Number not found' });
-  res.json({ success: true });
+  const ownerId = req.owner.id;
+  const deleted = NumberPoolService.deleteNumber(ownerId, req.params.id);
+  if (!deleted) return res.status(404).json({ error: 'Number not found or access denied' });
+  res.json({ success: true, message: 'Caller line removed' });
 });
 
-// ================= AUTOMATION RULES & ENGINE ================= //
+// ================= AUTOMATION RULES ================= //
 router.get('/rules', (req, res) => {
-  res.json(db.get('rules'));
+  const ownerId = req.owner.id;
+  res.json(db.getByOwner('rules', ownerId));
 });
 
 router.post('/rules', (req, res) => {
+  const ownerId = req.owner.id;
   const newRule = {
-    id: `rule-${Date.now()}`,
+    id: `rule-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     ...req.body,
     is_active: req.body.is_active !== false
   };
-  db.insert('rules', newRule);
+  db.insertForOwner('rules', ownerId, newRule);
   res.status(201).json(newRule);
 });
 
 router.put('/rules/:id', (req, res) => {
-  const updated = db.update('rules', req.params.id, req.body);
+  const ownerId = req.owner.id;
+  const updated = db.updateForOwner('rules', ownerId, req.params.id, req.body);
+  if (!updated) return res.status(404).json({ error: 'Rule not found or access denied' });
   res.json(updated);
 });
 
 router.delete('/rules/:id', (req, res) => {
-  db.delete('rules', req.params.id);
-  res.json({ success: true });
+  const ownerId = req.owner.id;
+  const deleted = db.deleteForOwner('rules', ownerId, req.params.id);
+  if (!deleted) return res.status(404).json({ error: 'Rule not found or access denied' });
+  res.json({ success: true, message: 'Rule deleted' });
 });
 
-// Trigger a manual run of the automated due checker
+// Manual Run of Automated Due Reminder Cycle for Authenticated Owner
 router.post('/automations/run-now', async (req, res) => {
+  const ownerId = req.owner.id;
   try {
-    const results = await AutomationService.runAutomationCycle();
+    const results = await AutomationService.runAutomationCycleForOwner(ownerId);
     res.json({
       success: true,
       timestamp: new Date().toISOString(),
@@ -202,11 +228,12 @@ router.post('/automations/run-now', async (req, res) => {
   }
 });
 
-// Trigger a single simulated or live test call/message directly
+// Test Voice Call or Message Simulator for Authenticated Owner
 router.post('/simulator/trigger-call', async (req, res) => {
+  const ownerId = req.owner.id;
   const { tenant_id, custom_script, channel } = req.body;
-  const tenant = db.find('tenants', t => t.id === tenant_id);
-  if (!tenant) return res.status(404).json({ error: 'Tenant not found' });
+  const tenant = db.findByOwner('tenants', ownerId, t => t.id === tenant_id);
+  if (!tenant) return res.status(404).json({ error: 'Tenant not found in your account' });
 
   try {
     let logResult;
@@ -219,13 +246,13 @@ router.post('/simulator/trigger-call', async (req, res) => {
       logResult = await TelecomService.dispatchWhatsAppMessage({
         tenant,
         messageText: custom_script || defaultWhatsAppScript,
-        ruleName: 'Manual Simulator Test'
+        ruleName: 'Manual Reminder Test'
       });
     } else if (channel === 'sms') {
       logResult = await TelecomService.dispatchSMS({
         tenant,
         messageText: custom_script || 'Rent notice: {currency}{rent_amount} due for {property_name}. தயவுசெய்து வாடகையை செலுத்தவும்.',
-        ruleName: 'Manual Simulator Test'
+        ruleName: 'Manual Reminder Test'
       });
     } else {
       // AI Voice call with anti-blocking caller ID rotation (Tamil First, English Next)
@@ -236,7 +263,7 @@ Hello {tenant_name}. This is an automated call from {owner_name} regarding your 
       logResult = await TelecomService.dispatchVoiceCall({
         tenant,
         scriptText: custom_script || defaultVoiceScript,
-        ruleName: 'Manual Simulator Test'
+        ruleName: 'Manual Reminder Test'
       });
     }
 
@@ -248,37 +275,45 @@ Hello {tenant_name}. This is an automated call from {owner_name} regarding your 
 
 // ================= LOGS & AUDIT TRAIL ================= //
 router.get('/logs', (req, res) => {
-  const logs = db.get('automation_logs');
+  const ownerId = req.owner.id;
+  const logs = db.getByOwner('automation_logs', ownerId);
   res.json(logs);
 });
 
 router.delete('/logs/clear', (req, res) => {
-  db.set('automation_logs', []);
-  res.json({ success: true, message: 'Logs cleared' });
+  const ownerId = req.owner.id;
+  const logs = db.get('automation_logs');
+  const remaining = logs.filter(l => l.owner_id !== ownerId);
+  db.set('automation_logs', remaining);
+  res.json({ success: true, message: 'Activity logs cleared' });
 });
 
 // ================= PAYMENTS HISTORY ================= //
 router.get('/payments', (req, res) => {
-  res.json(db.get('payment_history'));
+  const ownerId = req.owner.id;
+  res.json(db.getByOwner('payment_history', ownerId));
 });
 
 // ================= SETTINGS ================= //
 router.get('/settings', (req, res) => {
-  res.json(db.getSettings());
+  const ownerId = req.owner.id;
+  res.json(db.getSettingsForOwner(ownerId));
 });
 
 router.put('/settings', (req, res) => {
-  const updated = db.updateSettings(req.body);
+  const ownerId = req.owner.id;
+  const updated = db.updateSettingsForOwner(ownerId, req.body);
   res.json(updated);
 });
 
 // ================= DASHBOARD SUMMARY METRICS ================= //
 router.get('/dashboard-metrics', (req, res) => {
-  const tenants = db.get('tenants');
-  const properties = db.get('properties');
-  const phoneNumbers = db.get('phone_numbers');
-  const logs = db.get('automation_logs');
-  const settings = db.getSettings();
+  const ownerId = req.owner.id;
+  const tenants = db.getByOwner('tenants', ownerId);
+  const properties = db.getByOwner('properties', ownerId);
+  const phoneNumbers = db.getByOwner('phone_numbers', ownerId);
+  const logs = db.getByOwner('automation_logs', ownerId);
+  const settings = db.getSettingsForOwner(ownerId);
 
   const totalRentExpected = tenants.reduce((acc, t) => acc + Number(t.rent_amount || 0), 0);
   const totalRentCollected = tenants.filter(t => t.status === 'PAID').reduce((acc, t) => acc + Number(t.rent_amount || 0), 0);
@@ -297,23 +332,39 @@ router.get('/dashboard-metrics', (req, res) => {
     totalRentExpected,
     totalRentCollected,
     collectionRate: totalRentExpected > 0 ? Math.round((totalRentCollected / totalRentExpected) * 100) : 0,
-// ================= DEMO DATA CONTROL (CLEAR / RESET) ================= //
+    overdueCount,
+    dueTodayCount,
+    paidCount,
+    upcomingCount,
+    totalCallsMade,
+    totalWhatsAppSent,
+    activeNumbersCount,
+    currencySymbol: settings?.currency_symbol || '₹'
+  });
+});
+
+// ================= OPTIONAL DEMO DATA CONTROLS (PER-OWNER SCOPED) ================= //
 router.post('/account/clear-demo', (req, res) => {
-  db.set('properties', []);
-  db.set('tenants', []);
-  db.set('payment_history', []);
-  db.set('automation_logs', []);
+  const ownerId = req.owner.id;
+  
+  // Clear only this owner's properties, tenants, payments, and logs
+  const filterOutOwner = (collection) => db.set(collection, db.get(collection).filter(item => item.owner_id !== ownerId));
+  
+  filterOutOwner('properties');
+  filterOutOwner('tenants');
+  filterOutOwner('payment_history');
+  filterOutOwner('automation_logs');
+
   res.json({
     success: true,
-    message: 'Demo data cleared successfully. Account is now ready for your own properties and tenants!'
+    message: 'All properties and tenants cleared for your account.'
   });
 });
 
 router.post('/account/load-demo', (req, res) => {
+  const ownerId = req.owner.id;
   const today = new Date();
   const currentDay = today.getDate();
-  const currentMonth = today.toLocaleString('default', { month: 'short' });
-  const currentYear = today.getFullYear();
 
   const demoProperties = [
     {
@@ -339,6 +390,10 @@ router.post('/account/load-demo', (req, res) => {
       created_at: new Date().toISOString()
     }
   ];
+
+  for (const prop of demoProperties) {
+    db.insertForOwner('properties', ownerId, prop);
+  }
 
   const demoTenants = [
     {
@@ -379,12 +434,13 @@ router.post('/account/load-demo', (req, res) => {
     }
   ];
 
-  db.set('properties', demoProperties);
-  db.set('tenants', demoTenants);
+  for (const tenant of demoTenants) {
+    db.insertForOwner('tenants', ownerId, tenant);
+  }
 
   res.json({
     success: true,
-    message: 'Sample demo data loaded successfully'
+    message: 'Sample demo properties and tenants loaded into your account.'
   });
 });
 

@@ -6,7 +6,6 @@ export class AutomationService {
    * Evaluate a single tenant's due status based on today's calendar day
    */
   static evaluateTenantStatus(tenant) {
-    // If tenant has already paid for current billing cycle, status is PAID
     if (tenant.status === 'PAID') {
       return 'PAID';
     }
@@ -14,7 +13,6 @@ export class AutomationService {
     const today = new Date();
     const currentDay = today.getDate();
     const dueDay = tenant.due_day;
-    const graceDays = tenant.grace_days || 0;
 
     if (currentDay === dueDay) {
       return 'DUE_TODAY';
@@ -26,11 +24,13 @@ export class AutomationService {
   }
 
   /**
-   * Run the daily automation cycle across all active properties and tenants
+   * Run automation cycle for a specific owner
    */
-  static async runAutomationCycle() {
-    const tenants = db.get('tenants');
-    const rules = db.filter('rules', r => r.is_active);
+  static async runAutomationCycleForOwner(ownerId) {
+    if (!ownerId) return [];
+
+    const tenants = db.getByOwner('tenants', ownerId);
+    const rules = db.filterByOwner('rules', ownerId, r => r.is_active);
     const today = new Date();
     const currentDay = today.getDate();
     const executionResults = [];
@@ -66,7 +66,7 @@ export class AutomationService {
           const dispatched = [];
 
           // WhatsApp Channel
-          if (rule.channels.includes('whatsapp') && tenant.auto_wa_enabled) {
+          if (rule.channels?.includes('whatsapp') && tenant.auto_wa_enabled) {
             const waLog = await TelecomService.dispatchWhatsAppMessage({
               tenant,
               messageText: rule.script_template,
@@ -77,7 +77,7 @@ export class AutomationService {
           }
 
           // SMS Channel
-          if (rule.channels.includes('sms') && tenant.auto_sms_enabled) {
+          if (rule.channels?.includes('sms') && tenant.auto_sms_enabled) {
             const smsLog = await TelecomService.dispatchSMS({
               tenant,
               messageText: rule.script_template,
@@ -87,8 +87,8 @@ export class AutomationService {
             dispatched.push({ channel: 'sms', log_id: smsLog.id });
           }
 
-          // AI Voice Call Channel (with Anti-Blocking Number Rotation Pool!)
-          if (rule.channels.includes('ai_call') && tenant.auto_call_enabled) {
+          // AI Voice Call Channel (with Anti-Blocking Number Rotation Pool)
+          if (rule.channels?.includes('ai_call') && tenant.auto_call_enabled) {
             const callLog = await TelecomService.dispatchVoiceCall({
               tenant,
               scriptText: rule.script_template,
@@ -117,12 +117,31 @@ export class AutomationService {
   }
 
   /**
-   * Mark Rent as Paid (Immediate Stop-Trigger & Receipt Dispatch)
+   * Run the global daily background cron scheduler across all registered owners
    */
-  static async markAsPaid(tenantId, { amount, payment_mode, reference_id, notes }) {
-    const tenant = db.find('tenants', t => t.id === tenantId);
+  static async runAutomationCycle() {
+    const owners = db.get('owners');
+    let totalExecuted = [];
+
+    for (const owner of owners) {
+      try {
+        const results = await this.runAutomationCycleForOwner(owner.id);
+        totalExecuted = totalExecuted.concat(results);
+      } catch (err) {
+        console.error(`[CRON ERROR] Failed automation cycle for owner ${owner.id}:`, err);
+      }
+    }
+
+    return totalExecuted;
+  }
+
+  /**
+   * Mark Rent as Paid (Immediate Stop-Trigger & Receipt Dispatch for Owner)
+   */
+  static async markAsPaid(ownerId, tenantId, { amount, payment_mode, reference_id, notes }) {
+    const tenant = db.findByOwner('tenants', ownerId, t => t.id === tenantId);
     if (!tenant) {
-      throw new Error(`Tenant with ID ${tenantId} not found`);
+      throw new Error(`Tenant with ID ${tenantId} not found in your account`);
     }
 
     const today = new Date();
@@ -131,14 +150,15 @@ export class AutomationService {
     const paidAmount = amount || tenant.rent_amount;
 
     // 1. Update Tenant Status to PAID
-    const updatedTenant = db.update('tenants', tenantId, {
+    const updatedTenant = db.updateForOwner('tenants', ownerId, tenantId, {
       status: 'PAID',
       last_paid_date: today.toISOString().split('T')[0]
     });
 
-    // 2. Insert Payment Record
+    // 2. Insert Scoped Payment Record
     const paymentRecord = {
       id: `pay-${Date.now()}`,
+      owner_id: ownerId,
       tenant_id: tenant.id,
       tenant_name: tenant.name,
       property_name: tenant.property_name,
@@ -152,27 +172,28 @@ export class AutomationService {
       notes: notes || 'Marked as paid by property owner',
       created_at: today.toISOString()
     };
-    db.insert('payment_history', paymentRecord);
+    db.insertForOwner('payment_history', ownerId, paymentRecord);
 
     // 3. Log Immediate Kill-Switch Event
     const killSwitchLog = {
       id: `log-${Date.now()}`,
+      owner_id: ownerId,
       tenant_id: tenant.id,
       tenant_name: tenant.name,
       tenant_phone: tenant.phone,
       caller_id_used: 'SYSTEM-KILL-SWITCH',
       caller_id_label: 'Automation Controller',
       channel: 'system',
-      trigger_event: 'Rent Marked as PAID - Automation Halted',
+      trigger_event: 'Rent Marked as PAID - Reminders Halted',
       status: 'cancelled_paid',
       content: `Rent payment of ${paidAmount} received. All pending AI voice calls, WhatsApp reminders, and SMS triggers are IMMEDIATELY CANCELLED for this billing cycle.`,
       call_duration_sec: null,
       timestamp: today.toISOString()
     };
-    db.insert('automation_logs', killSwitchLog);
+    db.insertForOwner('automation_logs', ownerId, killSwitchLog);
 
-    // 4. Send Instant Payment Confirmation WhatsApp Receipt (English First, Tamil Next)
-    const settings = db.getSettings();
+    // 4. Send Instant Payment Confirmation WhatsApp Receipt
+    const settings = db.getSettingsForOwner(ownerId);
     const receiptMessage = `*Payment Confirmation & Receipt* 🧾
 Hello ${tenant.name},
 We have successfully received your rent payment of ${settings.currency_symbol || '₹'}${Number(paidAmount).toLocaleString()} for ${tenant.property_name} (${tenant.unit_number}) for ${currentMonth} ${currentYear}.
@@ -192,12 +213,16 @@ ${tenant.property_name} (${tenant.unit_number})-க்கான உங்கள�
 
 சரியான நேரத்தில் செலுத்தியமைக்கு நன்றி! அனைத்து தானியங்கி அழைப்புகளும் நினைவூட்டல்களும் நிறுத்தப்பட்டுவிட்டன.`;
     
-    await TelecomService.dispatchWhatsAppMessage({
-      tenant,
-      messageText: receiptMessage,
-      ruleName: 'Payment Received Confirmation',
-      triggerEvent: 'Receipt Dispatch'
-    });
+    try {
+      await TelecomService.dispatchWhatsAppMessage({
+        tenant,
+        messageText: receiptMessage,
+        ruleName: 'Payment Received Confirmation',
+        triggerEvent: 'Receipt Dispatch'
+      });
+    } catch (err) {
+      console.warn('[TELECOM RECEIPT] Could not dispatch receipt message:', err.message);
+    }
 
     return {
       success: true,
@@ -208,9 +233,9 @@ ${tenant.property_name} (${tenant.unit_number})-க்கான உங்கள�
   }
 
   /**
-   * Reset / Toggle tenant status (for testing or new billing cycle)
+   * Reset / Toggle tenant status for owner
    */
-  static updateTenantStatus(tenantId, newStatus) {
-    return db.update('tenants', tenantId, { status: newStatus });
+  static updateTenantStatus(ownerId, tenantId, newStatus) {
+    return db.updateForOwner('tenants', ownerId, tenantId, { status: newStatus });
   }
 }

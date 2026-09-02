@@ -1,14 +1,15 @@
 import React from 'react';
-import { Building2, PhoneCall, Settings, BookOpen, Key, LogOut, RefreshCw, UserCheck, Sparkles } from 'lucide-react';
+import { 
+  Building2, PhoneCall, Settings, BookOpen, LogOut, RefreshCw, 
+  UserCheck, HelpCircle, Layers, CheckCircle2 
+} from 'lucide-react';
 
 export const Header = ({ 
-  onStartFCTrainer,
-  onStartTour,
+  onOpenSetupGuide,
   onRunAutomation, 
   onOpenSimulator, 
   onOpenSettings, 
   onOpenDeployGuide, 
-  onOpenTokenInspector, 
   onLogout,
   owner,
   isRunningAutomation, 
@@ -33,7 +34,7 @@ export const Header = ({
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Multi-Channel Dunning • Anti-Blocking Phone Rotation • Instant Kill-Switch
+                Automated Rent Reminders • Rotated Caller Lines • Instant Kill-Switch
               </p>
             </div>
           </div>
@@ -44,13 +45,12 @@ export const Header = ({
               { id: 'dashboard', label: 'Dashboard' },
               { id: 'tenants', label: 'Tenants & Rent' },
               { id: 'properties', label: 'Properties' },
-              { id: 'pool', label: 'Caller ID Pool' },
+              { id: 'pool', label: 'Caller Numbers' },
               { id: 'automations', label: 'Automation Rules' },
               { id: 'logs', label: 'Activity Logs' },
             ].map(tab => (
               <button
                 key={tab.id}
-                data-tour={tab.id === 'pool' ? 'pool-tab' : undefined}
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-3 py-1.5 rounded-lg font-medium transition whitespace-nowrap ${
                   activeTab === tab.id
@@ -65,77 +65,59 @@ export const Header = ({
 
           {/* Action Buttons & Owner Profile */}
           <div className="flex items-center gap-2 flex-wrap">
-            {/* FC Mobile Style Newbie Training Button */}
+            
+            {/* Setup Guide Launcher */}
             <button
-              onClick={onStartFCTrainer}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black rounded-lg shadow-md shadow-amber-900/40 transition active:scale-95 animate-pulse border border-amber-300"
-              title="Launch FC Mobile-style newbie training drills"
+              onClick={onOpenSetupGuide}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-300 text-xs font-semibold rounded-lg border border-slate-700 transition active:scale-95"
+              title="Open step-by-step setup checklist"
             >
-              <span>🎮 FC Newbie Training</span>
-            </button>
-
-            {/* Guided Tour Trigger Button */}
-            <button
-              onClick={onStartTour}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-700 transition"
-              title="Start interactive step-by-step screen walkthrough"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span className="hidden sm:inline">Tour</span>
+              <HelpCircle className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Setup Guide</span>
             </button>
 
             {/* Run Daily Automation Engine */}
             <button
               onClick={onRunAutomation}
               disabled={isRunningAutomation}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold rounded-lg shadow-md shadow-emerald-900/20 transition active:scale-95 disabled:opacity-50"
-              title="Runs daily scan of due dates and dispatches matching calls/messages"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg shadow-sm transition active:scale-95 disabled:opacity-50"
+              title="Runs daily scan of due dates and dispatches matching calls and messages"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRunningAutomation ? 'animate-spin' : ''}`} />
-              <span>{isRunningAutomation ? 'Scanning...' : 'Run Daily Cycle'}</span>
+              <span>{isRunningAutomation ? 'Running...' : 'Run Daily Reminders'}</span>
             </button>
 
             {/* Quick Test Phone Simulator */}
             <button
               onClick={onOpenSimulator}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-medium rounded-lg transition"
+              title="Test a simulated automated reminder notice"
             >
               <PhoneCall className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Simulate Call</span>
+              <span>Test Call</span>
             </button>
 
             {/* Deployment Guide */}
             <button
               onClick={onOpenDeployGuide}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg border border-slate-700 transition"
-              title="How to deploy and connect real Twilio/WhatsApp APIs"
+              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg border border-slate-700 transition"
+              title="Telecom API connection guide (Twilio, WhatsApp Cloud, Vapi)"
             >
               <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Deploy Guide</span>
-            </button>
-
-            {/* Bearer Token Inspector */}
-            <button
-              data-tour="bearer-token-btn"
-              onClick={onOpenTokenInspector}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-medium rounded-lg border border-amber-500/30 transition"
-              title="Inspect & copy your active JWT Bearer Token"
-            >
-              <Key className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Bearer Token</span>
+              <span>API Guide</span>
             </button>
 
             {/* Settings */}
             <button
               onClick={onOpenSettings}
               className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg border border-slate-700 transition"
-              title="Settings & Telecom API keys"
+              title="Account settings & payment details"
             >
               <Settings className="w-4 h-4" />
             </button>
 
             {/* Owner Chip & Logout Button */}
-            <div className="flex items-center gap-1 pl-2 border-l border-slate-800">
+            <div className="flex items-center gap-1.5 pl-2 border-l border-slate-800">
               <div className="hidden lg:flex items-center gap-1.5 text-xs text-slate-300 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800">
                 <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="font-semibold">{owner?.name?.split(' ')[0] || 'Owner'}</span>
@@ -143,11 +125,11 @@ export const Header = ({
 
               <button
                 onClick={onLogout}
-                className="inline-flex items-center gap-1 p-1.5 bg-rose-600/10 hover:bg-rose-600/20 text-rose-300 rounded-lg border border-rose-500/30 text-xs font-medium transition"
-                title="Log out of owner portal"
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-rose-600/10 hover:bg-rose-600/20 text-rose-300 rounded-lg border border-rose-500/30 text-xs font-medium transition"
+                title="Log out of account"
               >
                 <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Logout</span>
+                <span>Logout</span>
               </button>
             </div>
 

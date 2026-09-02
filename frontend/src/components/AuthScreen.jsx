@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, Lock, Mail, User, Phone, ShieldCheck, Key, ArrowRight, Sparkles, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Building2, Lock, Mail, User, Phone, ShieldCheck, ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { api } from '../services/api';
 
 export const AuthScreen = ({ onLoginSuccess }) => {
@@ -15,6 +15,12 @@ export const AuthScreen = ({ onLoginSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+
+    if (isRegister && password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -28,12 +34,11 @@ export const AuthScreen = ({ onLoginSuccess }) => {
       if (res.error) {
         setError(res.error);
       } else if (res.token) {
-        // Save Bearer token & owner details in localStorage
         localStorage.setItem('property_rent_token', res.token);
         localStorage.setItem('property_rent_owner', JSON.stringify(res.owner));
         onLoginSuccess(res.owner, res.token);
       } else {
-        setError('Login failed. Please try again.');
+        setError('Authentication failed. Please check your credentials.');
       }
     } catch (err) {
       setError('Unable to connect to authentication server. ' + err.message);
@@ -67,7 +72,7 @@ export const AuthScreen = ({ onLoginSuccess }) => {
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 selection:bg-indigo-500 selection:text-white">
       {/* Background Glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6">
         
@@ -80,7 +85,7 @@ export const AuthScreen = ({ onLoginSuccess }) => {
             PropertyRent<span className="text-emerald-400">.AI</span>
           </h1>
           <p className="text-xs text-slate-400">
-            Property Owner Portal • JWT Bearer Token Security
+            Automated Property Management & Rent Collection Platform
           </p>
         </div>
 
@@ -93,7 +98,7 @@ export const AuthScreen = ({ onLoginSuccess }) => {
               !isRegister ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            Owner Login
+            Sign In
           </button>
           <button
             type="button"
@@ -113,22 +118,6 @@ export const AuthScreen = ({ onLoginSuccess }) => {
               <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
-            {!isRegister && error.includes('Invalid email') && (
-              <button
-                type="button"
-                onClick={() => {
-                  setIsRegister(true);
-                  if (!name && email) {
-                    const localPart = email.split('@')[0];
-                    setName(localPart.charAt(0).toUpperCase() + localPart.slice(1));
-                  }
-                  setError(null);
-                }}
-                className="w-full text-left font-semibold text-[11px] text-indigo-300 hover:text-indigo-200 underline pt-1"
-              >
-                👉 Don't have an account yet? Click here to Create Account with this email!
-              </button>
-            )}
           </div>
         )}
 
@@ -138,7 +127,7 @@ export const AuthScreen = ({ onLoginSuccess }) => {
           {isRegister && (
             <>
               <div>
-                <label className="block text-slate-300 font-medium mb-1">Owner Full Name</label>
+                <label className="block text-slate-300 font-medium mb-1">Full Name</label>
                 <div className="relative">
                   <User className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
@@ -153,7 +142,7 @@ export const AuthScreen = ({ onLoginSuccess }) => {
               </div>
 
               <div>
-                <label className="block text-slate-300 font-medium mb-1">Mobile Number</label>
+                <label className="block text-slate-300 font-medium mb-1">Phone Number (Optional)</label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
@@ -169,13 +158,13 @@ export const AuthScreen = ({ onLoginSuccess }) => {
           )}
 
           <div>
-            <label className="block text-slate-300 font-medium mb-1">Email Address</label>
+            <label className="block text-slate-300 font-medium mb-1">Work Email</label>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="email"
                 required
-                placeholder="e.g. owner@apexproperties.com"
+                placeholder="name@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2.5 text-slate-200 focus:outline-none focus:border-indigo-500"
@@ -210,35 +199,29 @@ export const AuthScreen = ({ onLoginSuccess }) => {
             disabled={loading}
             className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/30 transition active:scale-98 disabled:opacity-50 flex items-center justify-center gap-1.5 mt-2"
           >
-            <span>{loading ? 'Authenticating...' : isRegister ? 'Create Owner Account' : 'Sign In as Owner'}</span>
+            <span>{loading ? 'Signing in...' : isRegister ? 'Create Account' : 'Sign In'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
-        {/* 1-Click Quick Demo Login Button */}
+        {/* Optional Demo Login */}
         {!isRegister && (
           <div className="pt-2 border-t border-slate-800/80 space-y-2">
             <button
               type="button"
               onClick={handleDemoLogin}
               disabled={loading}
-              className="w-full py-2 bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-300 border border-emerald-500/30 text-xs font-semibold rounded-xl transition flex items-center justify-center gap-1.5"
+              className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition flex items-center justify-center gap-1.5"
             >
-              <Sparkles className="w-4 h-4 text-emerald-400" />
-              <span>⚡ 1-Click Quick Demo Login</span>
+              <span>Explore Demo Account</span>
             </button>
-            <p className="text-[10px] text-center text-slate-500">
-              Demo Credentials: <span className="font-mono text-slate-400">owner@apexproperties.com</span> / <span className="font-mono text-slate-400">password123</span>
-            </p>
           </div>
         )}
 
-        {/* Bearer Token Security Info */}
-        <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800 text-[11px] text-slate-400 flex items-start gap-2">
-          <Key className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-          <span>
-            Signing in generates a secure <strong>JWT Bearer Token</strong> that is automatically attached to all API requests and mobile calls.
-          </span>
+        {/* Security Badge */}
+        <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800 text-[11px] text-slate-400 flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+          <span>Encrypted session authentication • Owner-level data isolation</span>
         </div>
 
       </div>

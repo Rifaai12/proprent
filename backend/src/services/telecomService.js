@@ -6,17 +6,18 @@ export class TelecomService {
    * Replace template tokens with real tenant & property data
    */
   static renderTemplate(template, tenant, settings) {
-    const property = db.find('properties', p => p.id === tenant.property_id);
+    const ownerId = tenant.owner_id;
+    const property = db.findByOwner('properties', ownerId, p => p.id === tenant.property_id);
     const currency = settings.currency_symbol || '₹';
     const dueDay = tenant.due_day;
     const now = new Date();
     const dueDateStr = `${dueDay} ${now.toLocaleString('default', { month: 'short' })} ${now.getFullYear()}`;
 
-    return template
+    return (template || '')
       .replace(/{tenant_name}/g, tenant.name || 'Resident')
       .replace(/{property_name}/g, property ? property.name : (tenant.property_name || 'Property'))
       .replace(/{unit_number}/g, tenant.unit_number || 'Unit')
-      .replace(/{rent_amount}/g, Number(tenant.rent_amount).toLocaleString())
+      .replace(/{rent_amount}/g, Number(tenant.rent_amount || 0).toLocaleString())
       .replace(/{currency}/g, currency)
       .replace(/{due_date}/g, dueDateStr)
       .replace(/{owner_name}/g, settings.owner_name || 'Property Owner')
@@ -29,16 +30,18 @@ export class TelecomService {
    * Dispatch an AI Voice Call to a tenant
    */
   static async dispatchVoiceCall({ tenant, scriptText, ruleName, triggerEvent }) {
-    const settings = db.getSettings();
+    const ownerId = tenant.owner_id;
+    const settings = db.getSettingsForOwner(ownerId);
     
     // Select rotated caller ID to prevent tenant from blocking the number
-    const callerIdObj = NumberPoolService.selectRotatedCallerId(tenant.id);
+    const callerIdObj = NumberPoolService.selectRotatedCallerId(ownerId, tenant.id);
     const callerNumber = callerIdObj.phone_number;
 
     const renderedScript = this.renderTemplate(scriptText, tenant, settings);
 
     const logEntry = {
       id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      owner_id: ownerId,
       tenant_id: tenant.id,
       tenant_name: tenant.name,
       tenant_phone: tenant.phone,
@@ -54,18 +57,16 @@ export class TelecomService {
       mode: settings.simulation_mode ? 'SANDBOX_SIMULATED' : 'LIVE_PRODUCTION'
     };
 
-    // If live production mode is active and Twilio/Vapi keys are configured, execute live HTTP call
     if (!settings.simulation_mode) {
       try {
         console.log(`[LIVE TELECOM] Initiating live AI call via ${callerNumber} to ${tenant.phone}...`);
-        // If user has provided Twilio/Vapi credentials, they are called here
       } catch (err) {
         logEntry.status = 'failed';
         logEntry.content = `Live Call Error: ${err.message}`;
       }
     }
 
-    db.insert('automation_logs', logEntry);
+    db.insertForOwner('automation_logs', ownerId, logEntry);
     return logEntry;
   }
 
@@ -73,11 +74,13 @@ export class TelecomService {
    * Dispatch a WhatsApp message to a tenant
    */
   static async dispatchWhatsAppMessage({ tenant, messageText, ruleName, triggerEvent }) {
-    const settings = db.getSettings();
+    const ownerId = tenant.owner_id;
+    const settings = db.getSettingsForOwner(ownerId);
     const renderedMessage = this.renderTemplate(messageText, tenant, settings);
 
     const logEntry = {
       id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      owner_id: ownerId,
       tenant_id: tenant.id,
       tenant_name: tenant.name,
       tenant_phone: tenant.phone,
@@ -96,7 +99,7 @@ export class TelecomService {
       console.log(`[LIVE WHATSAPP] Sending message to ${tenant.phone}...`);
     }
 
-    db.insert('automation_logs', logEntry);
+    db.insertForOwner('automation_logs', ownerId, logEntry);
     return logEntry;
   }
 
@@ -104,11 +107,13 @@ export class TelecomService {
    * Dispatch an SMS message to a tenant
    */
   static async dispatchSMS({ tenant, messageText, ruleName, triggerEvent }) {
-    const settings = db.getSettings();
+    const ownerId = tenant.owner_id;
+    const settings = db.getSettingsForOwner(ownerId);
     const renderedMessage = this.renderTemplate(messageText, tenant, settings);
 
     const logEntry = {
       id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      owner_id: ownerId,
       tenant_id: tenant.id,
       tenant_name: tenant.name,
       tenant_phone: tenant.phone,
@@ -123,7 +128,7 @@ export class TelecomService {
       mode: settings.simulation_mode ? 'SANDBOX_SIMULATED' : 'LIVE_PRODUCTION'
     };
 
-    db.insert('automation_logs', logEntry);
+    db.insertForOwner('automation_logs', ownerId, logEntry);
     return logEntry;
   }
 }

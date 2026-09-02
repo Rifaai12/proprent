@@ -8,36 +8,7 @@ const router = express.Router();
 
 // Helper to ensure owners collection exists
 const getOwners = () => {
-  let owners = db.get('owners');
-  if (!owners || owners.length === 0) {
-    const defaultPasswordHash = bcrypt.hashSync('password123', 10);
-    const mohamedPasswordHash = bcrypt.hashSync('Nazeer21', 10);
-
-    const defaultOwner = {
-      id: 'owner-1',
-      name: 'Vikram (Property Owner)',
-      email: 'owner@apexproperties.com',
-      password: defaultPasswordHash,
-      phone: '+91 98000 11223',
-      role: 'SUPER_OWNER',
-      created_at: new Date().toISOString()
-    };
-
-    const mohamedOwner = {
-      id: 'owner-2',
-      name: 'Mohamed Rifaai',
-      email: 'mohamedrifaai151@gmail.com',
-      password: mohamedPasswordHash,
-      phone: '+91 98450 99887',
-      role: 'SUPER_OWNER',
-      created_at: new Date().toISOString()
-    };
-
-    db.insert('owners', defaultOwner);
-    db.insert('owners', mohamedOwner);
-    owners = [defaultOwner, mohamedOwner];
-  }
-  return owners;
+  return db.get('owners') || [];
 };
 
 // ================= OWNER LOGIN ================= //
@@ -59,6 +30,9 @@ router.post('/login', (req, res) => {
   if (!isPasswordValid) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
+
+  // Ensure owner defaults are initialized if missing
+  db.initializeOwnerDefaults(owner.id, owner.name, owner.email, owner.phone);
 
   // Generate JWT Bearer Token (Valid for 30 Days)
   const token = jwt.sign(
@@ -92,28 +66,35 @@ router.post('/register', (req, res) => {
   const { name, email, password, phone } = req.body;
 
   if (!name || !email || !password) {
-    return res.status(400).json({ error: 'Name, email, and password are required' });
+    return res.status(400).json({ error: 'Full name, email, and password are required' });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters long' });
   }
 
   const owners = getOwners();
   const existing = owners.find(o => o.email.toLowerCase() === email.trim().toLowerCase());
 
   if (existing) {
-    return res.status(400).json({ error: 'An owner account with this email already exists' });
+    return res.status(400).json({ error: 'An account with this email address already exists. Please log in.' });
   }
 
   const hashedPassword = bcrypt.hashSync(password, 10);
   const newOwner = {
-    id: `owner-${Date.now()}`,
-    name,
+    id: `owner-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    name: name.trim(),
     email: email.trim().toLowerCase(),
     password: hashedPassword,
-    phone: phone || '',
+    phone: phone ? phone.trim() : '',
     role: 'OWNER',
     created_at: new Date().toISOString()
   };
 
   db.insert('owners', newOwner);
+
+  // Initialize fresh personalized settings and automation rules for this new owner
+  db.initializeOwnerDefaults(newOwner.id, newOwner.name, newOwner.email, newOwner.phone);
 
   // Generate JWT Bearer Token
   const token = jwt.sign(
@@ -129,7 +110,7 @@ router.post('/register', (req, res) => {
 
   res.status(201).json({
     success: true,
-    message: 'Owner account created successfully',
+    message: 'Account created successfully',
     token_type: 'Bearer',
     token: token,
     owner: {
@@ -148,25 +129,35 @@ router.get('/me', requireAuth, (req, res) => {
   const owner = owners.find(o => o.id === req.owner.id);
 
   if (!owner) {
-    return res.status(404).json({ error: 'Owner profile not found' });
+    return res.status(404).json({ error: 'Owner profile not found. Please log in again.' });
   }
 
+  const propertiesCount = db.getByOwner('properties', owner.id).length;
+  const tenantsCount = db.getByOwner('tenants', owner.id).length;
+  const numbersCount = db.filterByOwner('phone_numbers', owner.id, n => n.is_active).length;
+
   res.json({
+    success: true,
     owner: {
       id: owner.id,
       name: owner.name,
       email: owner.email,
       phone: owner.phone,
       role: owner.role
+    },
+    account_stats: {
+      propertiesCount,
+      tenantsCount,
+      numbersCount
     }
   });
 });
 
 // ================= LOGOUT ================= //
-router.post('/logout', (req, res) => {
+router.post('/logout', requireAuth, (req, res) => {
   res.json({
     success: true,
-    message: 'Logged out successfully. Please discard the client bearer token.'
+    message: 'Logged out successfully.'
   });
 });
 
