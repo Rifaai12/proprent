@@ -276,6 +276,8 @@ Hello {tenant_name}. This is an automated call from {owner_name} regarding your 
 
 // ================= META WHATSAPP BUSINESS CLOUD API ================= //
 
+// ================= META WHATSAPP BUSINESS CLOUD API ================= //
+
 // Get connection and configuration status (Safe: Never exposes the access token)
 router.get('/whatsapp/status', (req, res) => {
   const ownerId = req.owner.id;
@@ -283,19 +285,148 @@ router.get('/whatsapp/status', (req, res) => {
   res.json({ success: true, ...status });
 });
 
-// Send Direct WhatsApp Message to an authenticated Owner's Tenant
+// Live verification with Meta Graph API for Phone Number ID & Token validity
+router.get('/whatsapp/verify', async (req, res) => {
+  const ownerId = req.owner.id;
+  try {
+    const result = await WhatsAppService.verifyWithMeta(ownerId);
+    if (!result.verified) {
+      return res.status(400).json({ success: false, ...result });
+    }
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// TEST 1: Send Meta standard 'hello_world' pre-approved template message
+router.post('/whatsapp/test-template', async (req, res) => {
+  const ownerId = req.owner.id;
+  const { testPhone, templateName, languageCode } = req.body;
+
+  if (!testPhone) {
+    return res.status(400).json({ success: false, error: 'Test destination phone number is required' });
+  }
+
+  try {
+    const result = await WhatsAppService.sendTemplateMessage({
+      to: testPhone,
+      templateName: templateName || 'hello_world',
+      languageCode: languageCode || 'en_US',
+      ownerId
+    });
+
+    res.json({
+      success: true,
+      message: 'Message accepted by Meta',
+      messageId: result.messageId,
+      recipient: result.recipient,
+      metaHttpStatus: result.metaHttpStatus,
+      durationMs: result.durationMs
+    });
+  } catch (err) {
+    console.error(`[API /whatsapp/test-template ERROR]:`, err.message);
+    res.status(400).json({
+      success: false,
+      error: err.message,
+      code: err.code || 'TEMPLATE_TEST_FAILED',
+      meta: err.meta || null
+    });
+  }
+});
+
+// TEST 2: Send Direct utility text message
+router.post('/whatsapp/test-utility', async (req, res) => {
+  const ownerId = req.owner.id;
+  const { testPhone, message } = req.body;
+
+  if (!testPhone) {
+    return res.status(400).json({ success: false, error: 'Test destination phone number is required' });
+  }
+
+  const textBody = message || 'Hello! This is a test utility message from PropertyRent.AI via Meta WhatsApp Business Cloud API.';
+
+  try {
+    const result = await WhatsAppService.sendUtilityMessage({
+      to: testPhone,
+      body: textBody,
+      ownerId,
+      ruleName: 'Manual Utility Test',
+      triggerEvent: 'Admin Utility Test'
+    });
+
+    res.json({
+      success: true,
+      message: 'Message accepted by Meta',
+      messageId: result.messageId,
+      recipient: result.recipient,
+      metaHttpStatus: result.metaHttpStatus,
+      durationMs: result.durationMs
+    });
+  } catch (err) {
+    console.error(`[API /whatsapp/test-utility ERROR]:`, err.message);
+    res.status(400).json({
+      success: false,
+      error: err.message,
+      code: err.code || 'UTILITY_TEST_FAILED',
+      meta: err.meta || null
+    });
+  }
+});
+
+// Legacy / General test endpoint (defaults to utility test)
+router.post('/whatsapp/test', async (req, res) => {
+  const ownerId = req.owner.id;
+  const { testPhone, message, useTemplate } = req.body;
+
+  if (!testPhone) {
+    return res.status(400).json({ success: false, error: 'Test destination phone number is required' });
+  }
+
+  try {
+    let result;
+    if (useTemplate) {
+      result = await WhatsAppService.sendTemplateMessage({ to: testPhone, ownerId });
+    } else {
+      result = await WhatsAppService.sendUtilityMessage({
+        to: testPhone,
+        body: message || 'Hello! Test message from PropertyRent.AI.',
+        ownerId
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Message accepted by Meta',
+      messageId: result.messageId,
+      recipient: result.recipient,
+      metaHttpStatus: result.metaHttpStatus,
+      durationMs: result.durationMs
+    });
+  } catch (err) {
+    console.error(`[API /whatsapp/test ERROR]:`, err.message);
+    res.status(400).json({
+      success: false,
+      error: err.message,
+      code: err.code || 'TEST_SEND_FAILED',
+      meta: err.meta || null
+    });
+  }
+});
+
+// Send Direct WhatsApp Notice to an authenticated Owner's Tenant
 router.post('/whatsapp/send', async (req, res) => {
   const ownerId = req.owner.id;
   const { tenantId, message, customMessage } = req.body;
 
   if (!tenantId) {
-    return res.status(400).json({ error: 'Tenant ID is required' });
+    return res.status(400).json({ success: false, error: 'Tenant ID is required' });
   }
 
   // Strictly verify that the tenant belongs to the authenticated owner
   const tenant = db.findByOwner('tenants', ownerId, t => t.id === tenantId);
   if (!tenant) {
-    return res.status(404).json({ error: 'Tenant not found in your account or access denied' });
+    return res.status(404).json({ success: false, error: 'Tenant not found in your account or access denied' });
   }
 
   const settings = db.getSettingsForOwner(ownerId);
@@ -303,20 +434,21 @@ router.post('/whatsapp/send', async (req, res) => {
   const renderedMessage = TelecomService.renderTemplate(rawMessage, tenant, settings);
 
   try {
-    const result = await WhatsAppService.sendWhatsAppMessage({
+    const result = await WhatsAppService.sendUtilityMessage({
       to: tenant.phone,
-      message: renderedMessage,
+      body: renderedMessage,
       ownerId,
       tenantId: tenant.id,
-      ruleName: 'Manual WhatsApp Notice',
+      ruleName: 'Manual Rent Notice',
       triggerEvent: 'Direct Owner Send'
     });
 
     res.json({
       success: true,
-      message: 'WhatsApp message accepted by Meta Cloud API and sent to tenant',
+      message: 'Message accepted by Meta',
       messageId: result.messageId,
       recipient: result.recipient,
+      metaHttpStatus: result.metaHttpStatus,
       log: result.log
     });
   } catch (err) {
@@ -325,45 +457,7 @@ router.post('/whatsapp/send', async (req, res) => {
       success: false,
       error: err.message,
       code: err.code || 'WHATSAPP_SEND_FAILED',
-      metaDetails: err.metaDetails || null
-    });
-  }
-});
-
-// Test WhatsApp Cloud API direct send to an arbitrary test phone
-router.post('/whatsapp/test', async (req, res) => {
-  const ownerId = req.owner.id;
-  const { testPhone, message } = req.body;
-
-  if (!testPhone) {
-    return res.status(400).json({ error: 'Test destination phone number is required' });
-  }
-
-  const testMessage = message || 'Hello! This is a test utility message from PropertyRent.AI via Meta WhatsApp Business Cloud API.';
-
-  try {
-    const result = await WhatsAppService.sendWhatsAppMessage({
-      to: testPhone,
-      message: testMessage,
-      ownerId,
-      ruleName: 'Meta API Test Check',
-      triggerEvent: 'Admin Test Send'
-    });
-
-    res.json({
-      success: true,
-      message: 'Test message accepted by Meta Cloud API and delivered',
-      messageId: result.messageId,
-      recipient: result.recipient,
-      responseTimeMs: result.responseTimeMs
-    });
-  } catch (err) {
-    console.error(`[API /whatsapp/test ERROR]: ${err.message}`);
-    res.status(400).json({
-      success: false,
-      error: err.message,
-      code: err.code || 'TEST_SEND_FAILED',
-      metaDetails: err.metaDetails || null
+      meta: err.meta || null
     });
   }
 });

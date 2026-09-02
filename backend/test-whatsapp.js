@@ -116,15 +116,44 @@ async function runWhatsAppTests() {
   const sendData = await sendRes.json();
   console.log('  - Send response:', sendData);
 
-  // If environment variables are not set yet, it should gracefully report WHATSAPP_NOT_CONFIGURED
-  // If set, it sends real HTTP request to Meta!
-  if (!sendData.success && sendData.code === 'WHATSAPP_NOT_CONFIGURED') {
-    console.log('  ℹ️ Meta credentials not configured in environment (Verified clear actionable error message returned).');
-  } else if (sendData.success) {
-    console.log(`  🎉 Real Meta Cloud API returned success! Message ID: ${sendData.messageId}`);
-  } else {
-    console.log(`  ℹ️ Meta Graph API response handled properly: ${sendData.error}`);
-  }
+  // --- TEST 6: Test Template Endpoint (POST /api/whatsapp/test-template) ---
+  console.log('\n🔹 6. Testing POST /api/whatsapp/test-template...');
+  const templateRes = await fetch(`${API_BASE}/whatsapp/test-template`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${alice.token}`
+    },
+    body: JSON.stringify({
+      testPhone: '+91 98403 92047'
+    })
+  });
+  const templateData = await templateRes.json();
+  console.log('  - Template test response:', templateData);
+
+  // --- TEST 7: Test Utility Endpoint (POST /api/whatsapp/test-utility) ---
+  console.log('\n🔹 7. Testing POST /api/whatsapp/test-utility...');
+  const utilityRes = await fetch(`${API_BASE}/whatsapp/test-utility`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${alice.token}`
+    },
+    body: JSON.stringify({
+      testPhone: '+91 98403 92047',
+      message: 'Hello! Diagnostic test.'
+    })
+  });
+  const utilityData = await utilityRes.json();
+  console.log('  - Utility test response:', utilityData);
+
+  // --- TEST 8: Live Verification Endpoint (GET /api/whatsapp/verify) ---
+  console.log('\n🔹 8. Testing GET /api/whatsapp/verify...');
+  const verifyRes = await fetch(`${API_BASE}/whatsapp/verify`, {
+    headers: { 'Authorization': `Bearer ${alice.token}` }
+  });
+  const verifyData = await verifyRes.json();
+  console.log('  - Live verify response:', verifyData);
 
   console.log('\n🎉 ====================================================');
   console.log('🎉 ALL META WHATSAPP INTEGRATION & SECURITY TESTS PASSED!');

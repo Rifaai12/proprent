@@ -1,4 +1,8 @@
-const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
+// Normalize base API URL from environment variable (with fallback to relative /api)
+const rawBase = import.meta.env.VITE_API_URL || '/api';
+const API_BASE = rawBase.endsWith('/api') ? rawBase.replace(/\/$/, '') : `${rawBase.replace(/\/$/, '')}/api`;
+
+export const getApiBaseUrl = () => API_BASE;
 
 // Helper to get auth headers with Bearer token
 const getAuthHeaders = (extraHeaders = {}) => {
@@ -13,7 +17,7 @@ const getAuthHeaders = (extraHeaders = {}) => {
   return headers;
 };
 
-// Safe fetch wrapper that catches network errors and handles 401
+// Safe fetch wrapper that captures full error diagnostics and handles 401
 const safeFetch = async (url, options = {}) => {
   try {
     const res = await fetch(url, options);
@@ -26,7 +30,7 @@ const safeFetch = async (url, options = {}) => {
     return data;
   } catch (err) {
     console.error('Fetch error:', err);
-    return { error: err.message };
+    return { success: false, error: err.message, networkError: true };
   }
 };
 
@@ -214,6 +218,23 @@ export const api = {
   getWhatsAppStatus: async () => {
     return safeFetch(`${API_BASE}/whatsapp/status`, { headers: getAuthHeaders() });
   },
+  verifyWhatsAppSetup: async () => {
+    return safeFetch(`${API_BASE}/whatsapp/verify`, { headers: getAuthHeaders() });
+  },
+  testWhatsAppTemplate: async ({ testPhone, templateName, languageCode }) => {
+    return safeFetch(`${API_BASE}/whatsapp/test-template`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ testPhone, templateName, languageCode }),
+    });
+  },
+  testWhatsAppUtility: async ({ testPhone, message }) => {
+    return safeFetch(`${API_BASE}/whatsapp/test-utility`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ testPhone, message }),
+    });
+  },
   sendWhatsAppMessage: async ({ tenantId, message }) => {
     return safeFetch(`${API_BASE}/whatsapp/send`, {
       method: 'POST',
@@ -221,11 +242,11 @@ export const api = {
       body: JSON.stringify({ tenantId, message }),
     });
   },
-  sendWhatsAppTest: async ({ testPhone, message }) => {
+  sendWhatsAppTest: async ({ testPhone, message, useTemplate }) => {
     return safeFetch(`${API_BASE}/whatsapp/test`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ testPhone, message }),
+      body: JSON.stringify({ testPhone, message, useTemplate }),
     });
   },
 

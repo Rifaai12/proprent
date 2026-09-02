@@ -394,28 +394,64 @@ export const TenantsSection = ({
             {whatsAppResult && (
               <div className={`p-3 rounded-xl border text-xs animate-fade-in ${
                 whatsAppResult.success
-                  ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
-                  : 'bg-rose-950/60 border-rose-500/40 text-rose-300'
+                  ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-200'
+                  : 'bg-rose-950/60 border-rose-500/40 text-rose-200'
               }`}>
                 {whatsAppResult.success ? (
                   <div className="space-y-1">
-                    <p className="font-bold flex items-center gap-1.5">
+                    <p className="font-bold flex items-center gap-1.5 text-emerald-300">
                       <CheckCircle className="w-4 h-4 text-emerald-400" />
-                      <span>WhatsApp message accepted by Meta Cloud API!</span>
+                      <span>Message accepted by Meta</span>
                     </p>
-                    <p className="text-[11px] font-mono text-emerald-200">
+                    <p className="text-[11px] font-mono text-emerald-300">
                       WAMID: {whatsAppResult.messageId}
+                    </p>
+                    <p className="text-[10px] text-emerald-400/90 pt-0.5">
+                      Meta has queued this notice for delivery to {whatsAppTenant.phone}.
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-1">
-                    <p className="font-bold flex items-center gap-1.5">
+                  <div className="space-y-1.5">
+                    <p className="font-bold flex items-center gap-1.5 text-rose-300">
                       <AlertCircle className="w-4 h-4 text-rose-400" />
-                      <span>Unable to send WhatsApp notice</span>
+                      <span>Meta WhatsApp API Rejected Message</span>
                     </p>
                     <p className="text-[11px] text-rose-200 leading-relaxed">
                       {whatsAppResult.error}
                     </p>
+
+                    {whatsAppResult.meta?.code && (
+                      <div className="p-2 rounded bg-slate-950 border border-slate-800 text-[10px] font-mono text-slate-300 space-y-0.5">
+                        <p>Meta Code: {whatsAppResult.meta.code}</p>
+                        {whatsAppResult.meta.subcode && <p>Meta Subcode: {whatsAppResult.meta.subcode}</p>}
+                        {whatsAppResult.meta.fbtrace_id && <p>fbtrace_id: {whatsAppResult.meta.fbtrace_id}</p>}
+                      </div>
+                    )}
+
+                    {/* Helpful Meta policy hints */}
+                    {whatsAppResult.meta?.code === 131047 && (
+                      <div className="p-2 bg-amber-950/40 border border-amber-500/30 rounded text-[10px] text-amber-300 space-y-1">
+                        <p>⚠️ <strong>24-hour service window expired:</strong> Meta requires an approved message template for business-initiated notifications outside 24h.</p>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            setIsSendingWhatsApp(true);
+                            const tRes = await api.testWhatsAppTemplate({ testPhone: whatsAppTenant.phone });
+                            setIsSendingWhatsApp(false);
+                            setWhatsAppResult(tRes);
+                          }}
+                          className="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded text-[10px] transition"
+                        >
+                          Send 'hello_world' Template Instead
+                        </button>
+                      </div>
+                    )}
+
+                    {whatsAppResult.meta?.code === 131030 && (
+                      <div className="p-2 bg-amber-950/40 border border-amber-500/30 rounded text-[10px] text-amber-300">
+                        ⚠️ <strong>Recipient not verified in Meta Sandbox:</strong> If using Meta's free test number, add <strong>{whatsAppTenant.phone}</strong> under WhatsApp &gt; API Setup in developers.facebook.com.
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
