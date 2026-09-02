@@ -29,8 +29,10 @@ export class AutomationService {
   static async runAutomationCycleForOwner(ownerId) {
     if (!ownerId) return [];
 
-    const tenants = db.getByOwner('tenants', ownerId);
-    const rules = db.filterByOwner('rules', ownerId, r => r.is_active);
+    const tenants = await db.getByOwner('tenants', ownerId);
+    const allRules = await db.getByOwner('rules', ownerId);
+    const rules = allRules.filter(r => r.is_active);
+
     const today = new Date();
     const currentDay = today.getDate();
     const executionResults = [];
@@ -48,7 +50,7 @@ export class AutomationService {
       }
 
       const dueDay = tenant.due_day;
-      const dayDiff = currentDay - dueDay; // Negative = days before due, 0 = due today, Positive = days overdue
+      const dayDiff = currentDay - dueDay;
 
       // Find matching rules based on offset
       for (const rule of rules) {
@@ -64,9 +66,10 @@ export class AutomationService {
 
         if (isMatch) {
           const dispatched = [];
+          const channels = Array.isArray(rule.channels) ? rule.channels : (typeof rule.channels === 'string' ? JSON.parse(rule.channels) : ['whatsapp']);
 
           // WhatsApp Channel
-          if (rule.channels?.includes('whatsapp') && tenant.auto_wa_enabled) {
+          if (channels.includes('whatsapp') && tenant.auto_wa_enabled) {
             const waLog = await TelecomService.dispatchWhatsAppMessage({
               tenant,
               messageText: rule.script_template,
@@ -77,7 +80,7 @@ export class AutomationService {
           }
 
           // SMS Channel
-          if (rule.channels?.includes('sms') && tenant.auto_sms_enabled) {
+          if (channels.includes('sms') && tenant.auto_sms_enabled) {
             const smsLog = await TelecomService.dispatchSMS({
               tenant,
               messageText: rule.script_template,
@@ -88,7 +91,7 @@ export class AutomationService {
           }
 
           // AI Voice Call Channel (with Anti-Blocking Number Rotation Pool)
-          if (rule.channels?.includes('ai_call') && tenant.auto_call_enabled) {
+          if (channels.includes('ai_call') && tenant.auto_call_enabled) {
             const callLog = await TelecomService.dispatchVoiceCall({
               tenant,
               scriptText: rule.script_template,
@@ -120,7 +123,7 @@ export class AutomationService {
    * Run the global daily background cron scheduler across all registered owners
    */
   static async runAutomationCycle() {
-    const owners = db.get('owners');
+    const owners = await db.get('owners');
     let totalExecuted = [];
 
     for (const owner of owners) {
@@ -139,7 +142,7 @@ export class AutomationService {
    * Mark Rent as Paid (Immediate Stop-Trigger & Receipt Dispatch for Owner)
    */
   static async markAsPaid(ownerId, tenantId, { amount, payment_mode, reference_id, notes }) {
-    const tenant = db.findByOwner('tenants', ownerId, t => t.id === tenantId);
+    const tenant = await db.findByOwner('tenants', ownerId, tenantId);
     if (!tenant) {
       throw new Error(`Tenant with ID ${tenantId} not found in your account`);
     }
@@ -150,7 +153,7 @@ export class AutomationService {
     const paidAmount = amount || tenant.rent_amount;
 
     // 1. Update Tenant Status to PAID
-    const updatedTenant = db.updateForOwner('tenants', ownerId, tenantId, {
+    const updatedTenant = await db.updateForOwner('tenants', ownerId, tenantId, {
       status: 'PAID',
       last_paid_date: today.toISOString().split('T')[0]
     });
@@ -161,18 +164,16 @@ export class AutomationService {
       owner_id: ownerId,
       tenant_id: tenant.id,
       tenant_name: tenant.name,
-      property_name: tenant.property_name,
-      unit_number: tenant.unit_number,
+      property_name: tenant.property_name || 'Property',
+      unit_number: tenant.unit_number || '',
       amount: Number(paidAmount),
-      paid_on: today.toISOString(),
-      cycle_month: currentMonth,
-      cycle_year: currentYear,
+      payment_date: today.toISOString(),
       payment_mode: payment_mode || 'UPI / Instant Bank Transfer',
-      reference_id: reference_id || `TXN-${Date.now().toString().slice(-6)}`,
-      notes: notes || 'Marked as paid by property owner',
+      notes: notes || `Ref: ${reference_id || `TXN-${Date.now().toString().slice(-6)}`}`,
+      status: 'PAID',
       created_at: today.toISOString()
     };
-    db.insertForOwner('payment_history', ownerId, paymentRecord);
+    await db.insertForOwner('payment_history', ownerId, paymentRecord);
 
     // 3. Log Immediate Kill-Switch Event
     const killSwitchLog = {
@@ -190,28 +191,23 @@ export class AutomationService {
       call_duration_sec: null,
       timestamp: today.toISOString()
     };
-    db.insertForOwner('automation_logs', ownerId, killSwitchLog);
+    await db.insertForOwner('automation_logs', ownerId, killSwitchLog);
 
     // 4. Send Instant Payment Confirmation WhatsApp Receipt
-    const settings = db.getSettingsForOwner(ownerId);
+    const settings = await db.getSettingsForOwner(ownerId);
     const receiptMessage = `*Payment Confirmation & Receipt* 🧾
 Hello ${tenant.name},
-We have successfully received your rent payment of ${settings.currency_symbol || '₹'}${Number(paidAmount).toLocaleString()} for ${tenant.property_name} (${tenant.unit_number}) for ${currentMonth} ${currentYear}.
+We have successfully received your rent payment of ${settings.currency_symbol || '₹'}${Number(paidAmount).toLocaleString()} for ${tenant.property_name || 'Property'} (${tenant.unit_number || 'Unit'}) for ${currentMonth} ${currentYear}.
 
-*Transaction ID:* ${paymentRecord.reference_id}
-*Date:* ${today.toLocaleDateString()}
+*Transaction Date:* ${today.toLocaleDateString()}
 
 Thank you for paying on time! All automated reminder alerts have now been stopped.
 
 ----------------------------------
 *வாடகை ரசீது & உறுதிப்படுத்தல்* 🧾
 வணக்கம் ${tenant.name},
-${tenant.property_name} (${tenant.unit_number})-க்கான உங்கள் வாடகைத் தொகை ${settings.currency_symbol || '₹'}${Number(paidAmount).toLocaleString()} (${currentMonth} ${currentYear}) வெற்றிகரமாக பெறப்பட்டது.
-
-*பரிவர்த்தனை எண்:* ${paymentRecord.reference_id}
-*தேதி:* ${today.toLocaleDateString()}
-
-சரியான நேரத்தில் செலுத்தியமைக்கு நன்றி! அனைத்து தானியங்கி அழைப்புகளும் நினைவூட்டல்களும் நிறுத்தப்பட்டுவிட்டன.`;
+உங்கள் வாடகைத் தொகை ${settings.currency_symbol || '₹'}${Number(paidAmount).toLocaleString()} (${currentMonth} ${currentYear}) வெற்றிகரமாக பெறப்பட்டது.
+நன்றி! அனைத்து தானியங்கி நினைவூட்டல்களும் நிறுத்தப்பட்டுவிட்டன.`;
     
     try {
       await TelecomService.dispatchWhatsAppMessage({
@@ -235,7 +231,7 @@ ${tenant.property_name} (${tenant.unit_number})-க்கான உங்கள�
   /**
    * Reset / Toggle tenant status for owner
    */
-  static updateTenantStatus(ownerId, tenantId, newStatus) {
-    return db.updateForOwner('tenants', ownerId, tenantId, { status: newStatus });
+  static async updateTenantStatus(ownerId, tenantId, newStatus) {
+    return await db.updateForOwner('tenants', ownerId, tenantId, { status: newStatus });
   }
 }

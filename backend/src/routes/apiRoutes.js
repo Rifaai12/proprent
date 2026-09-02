@@ -12,29 +12,34 @@ const router = express.Router();
 router.use(requireAuth);
 
 // ================= PROPERTIES (OWNER-SCOPED) ================= //
-router.get('/properties', (req, res) => {
+router.get('/properties', async (req, res) => {
   const ownerId = req.owner.id;
-  const properties = db.getByOwner('properties', ownerId);
-  const tenants = db.getByOwner('tenants', ownerId);
+  try {
+    const properties = await db.getByOwner('properties', ownerId);
+    const tenants = await db.getByOwner('tenants', ownerId);
 
-  // Enrich with unit counts and collection metrics for this owner
-  const enriched = properties.map(prop => {
-    const propTenants = tenants.filter(t => t.property_id === prop.id);
-    const totalRent = propTenants.reduce((sum, t) => sum + Number(t.rent_amount || 0), 0);
-    const paidRent = propTenants.filter(t => t.status === 'PAID').reduce((sum, t) => sum + Number(t.rent_amount || 0), 0);
-    return {
-      ...prop,
-      occupied_units: propTenants.length,
-      total_rent: totalRent,
-      collected_rent: paidRent,
-      tenants: propTenants
-    };
-  });
+    // Enrich with unit counts and collection metrics for this owner
+    const enriched = properties.map(prop => {
+      const propTenants = tenants.filter(t => t.property_id === prop.id);
+      const totalRent = propTenants.reduce((sum, t) => sum + Number(t.rent_amount || 0), 0);
+      const paidRent = propTenants.filter(t => t.status === 'PAID').reduce((sum, t) => sum + Number(t.rent_amount || 0), 0);
+      return {
+        ...prop,
+        occupied_units: propTenants.length,
+        total_rent: totalRent,
+        collected_rent: paidRent,
+        tenants: propTenants
+      };
+    });
 
-  res.json(enriched);
+    res.json(enriched);
+  } catch (err) {
+    console.error('[API GET /properties ERROR]:', err);
+    res.status(500).json({ error: 'Failed to fetch properties from database' });
+  }
 });
 
-router.post('/properties', (req, res) => {
+router.post('/properties', async (req, res) => {
   const ownerId = req.owner.id;
   const { name, type, address, city, state, units_count, default_rent } = req.body;
   if (!name) return res.status(400).json({ error: 'Property name is required' });
@@ -51,85 +56,129 @@ router.post('/properties', (req, res) => {
     created_at: new Date().toISOString()
   };
 
-  db.insertForOwner('properties', ownerId, newProperty);
-  res.status(201).json(newProperty);
+  try {
+    // 1. Insert into database
+    await db.insertForOwner('properties', ownerId, newProperty);
+
+    // 2. Immediately verify existence in persistent database
+    const verifiedProperty = await db.findByOwner('properties', ownerId, newProperty.id);
+    if (!verifiedProperty) {
+      throw new Error('Property creation verification failed: Record not found in database immediately after insert');
+    }
+
+    res.status(201).json(verifiedProperty);
+  } catch (err) {
+    console.error('[API POST /properties ERROR]:', err);
+    res.status(500).json({ error: `Failed to save property to database: ${err.message}` });
+  }
 });
 
-router.put('/properties/:id', (req, res) => {
+router.put('/properties/:id', async (req, res) => {
   const ownerId = req.owner.id;
-  const updated = db.updateForOwner('properties', ownerId, req.params.id, req.body);
-  if (!updated) return res.status(404).json({ error: 'Property not found or access denied' });
-  res.json(updated);
+  try {
+    const updated = await db.updateForOwner('properties', ownerId, req.params.id, req.body);
+    if (!updated) return res.status(404).json({ error: 'Property not found or access denied' });
+    res.json(updated);
+  } catch (err) {
+    console.error('[API PUT /properties ERROR]:', err);
+    res.status(500).json({ error: 'Failed to update property' });
+  }
 });
 
-router.delete('/properties/:id', (req, res) => {
+router.delete('/properties/:id', async (req, res) => {
   const ownerId = req.owner.id;
-  const deleted = db.deleteForOwner('properties', ownerId, req.params.id);
-  if (!deleted) return res.status(404).json({ error: 'Property not found or access denied' });
-  res.json({ success: true, message: 'Property deleted' });
+  try {
+    const deleted = await db.deleteForOwner('properties', ownerId, req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Property not found or access denied' });
+    res.json({ success: true, message: 'Property deleted' });
+  } catch (err) {
+    console.error('[API DELETE /properties ERROR]:', err);
+    res.status(500).json({ error: 'Failed to delete property' });
+  }
 });
 
 // ================= TENANTS (OWNER-SCOPED) ================= //
-router.get('/tenants', (req, res) => {
+router.get('/tenants', async (req, res) => {
   const ownerId = req.owner.id;
-  const tenants = db.getByOwner('tenants', ownerId);
-  const properties = db.getByOwner('properties', ownerId);
+  try {
+    const tenants = await db.getByOwner('tenants', ownerId);
+    const properties = await db.getByOwner('properties', ownerId);
 
-  const enriched = tenants.map(tenant => {
-    const prop = properties.find(p => p.id === tenant.property_id);
-    return {
-      ...tenant,
-      property_name: prop ? prop.name : (tenant.property_name || 'Unassigned Property')
-    };
-  });
+    const enriched = tenants.map(tenant => {
+      const prop = properties.find(p => p.id === tenant.property_id);
+      return {
+        ...tenant,
+        property_name: prop ? prop.name : (tenant.property_name || 'Unassigned Property')
+      };
+    });
 
-  res.json(enriched);
+    res.json(enriched);
+  } catch (err) {
+    console.error('[API GET /tenants ERROR]:', err);
+    res.status(500).json({ error: 'Failed to fetch tenants' });
+  }
 });
 
-router.post('/tenants', (req, res) => {
+router.post('/tenants', async (req, res) => {
   const ownerId = req.owner.id;
   const { property_id, unit_number, name, phone, email, rent_amount, due_day, grace_days, auto_call_enabled, auto_sms_enabled, auto_wa_enabled } = req.body;
   if (!name || !phone || !rent_amount) {
     return res.status(400).json({ error: 'Name, phone number, and rent amount are required' });
   }
 
-  const prop = property_id ? db.findByOwner('properties', ownerId, p => p.id === property_id) : null;
+  try {
+    const prop = property_id ? await db.findByOwner('properties', ownerId, property_id) : null;
 
-  const newTenant = {
-    id: `ten-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-    property_id: property_id || '',
-    property_name: prop ? prop.name : 'Primary Property',
-    unit_number: unit_number || '101',
-    name: name.trim(),
-    phone: phone.trim(),
-    email: email ? email.trim() : '',
-    rent_amount: Number(rent_amount),
-    due_day: Number(due_day) || 1,
-    grace_days: Number(grace_days) || 3,
-    status: 'UPCOMING',
-    last_paid_date: null,
-    auto_call_enabled: auto_call_enabled !== false,
-    auto_sms_enabled: auto_sms_enabled !== false,
-    auto_wa_enabled: auto_wa_enabled !== false,
-    created_at: new Date().toISOString()
-  };
+    const newTenant = {
+      id: `ten-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      property_id: property_id || null,
+      unit_number: unit_number || '101',
+      name: name.trim(),
+      phone: phone.trim(),
+      email: email ? email.trim() : '',
+      rent_amount: Number(rent_amount),
+      due_day: Number(due_day) || 1,
+      grace_days: Number(grace_days) || 3,
+      status: 'UPCOMING',
+      auto_call_enabled: auto_call_enabled !== false,
+      auto_sms_enabled: auto_sms_enabled !== false,
+      auto_wa_enabled: auto_wa_enabled !== false,
+      created_at: new Date().toISOString()
+    };
 
-  db.insertForOwner('tenants', ownerId, newTenant);
-  res.status(201).json(newTenant);
+    const inserted = await db.insertForOwner('tenants', ownerId, newTenant);
+    res.status(201).json({
+      ...inserted,
+      property_name: prop ? prop.name : 'Primary Property'
+    });
+  } catch (err) {
+    console.error('[API POST /tenants ERROR]:', err);
+    res.status(500).json({ error: 'Failed to save tenant' });
+  }
 });
 
-router.put('/tenants/:id', (req, res) => {
+router.put('/tenants/:id', async (req, res) => {
   const ownerId = req.owner.id;
-  const updated = db.updateForOwner('tenants', ownerId, req.params.id, req.body);
-  if (!updated) return res.status(404).json({ error: 'Tenant not found or access denied' });
-  res.json(updated);
+  try {
+    const updated = await db.updateForOwner('tenants', ownerId, req.params.id, req.body);
+    if (!updated) return res.status(404).json({ error: 'Tenant not found or access denied' });
+    res.json(updated);
+  } catch (err) {
+    console.error('[API PUT /tenants ERROR]:', err);
+    res.status(500).json({ error: 'Failed to update tenant' });
+  }
 });
 
-router.delete('/tenants/:id', (req, res) => {
+router.delete('/tenants/:id', async (req, res) => {
   const ownerId = req.owner.id;
-  const deleted = db.deleteForOwner('tenants', ownerId, req.params.id);
-  if (!deleted) return res.status(404).json({ error: 'Tenant not found or access denied' });
-  res.json({ success: true, message: 'Tenant deleted' });
+  try {
+    const deleted = await db.deleteForOwner('tenants', ownerId, req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Tenant not found or access denied' });
+    res.json({ success: true, message: 'Tenant deleted' });
+  } catch (err) {
+    console.error('[API DELETE /tenants ERROR]:', err);
+    res.status(500).json({ error: 'Failed to delete tenant' });
+  }
 });
 
 // ================= MARK AS PAID (INSTANT REMINDER STOP TRIGGER) ================= //
@@ -143,74 +192,111 @@ router.post('/tenants/:id/mark-paid', async (req, res) => {
   }
 });
 
-// Update tenant status directly (for simulation & manual management)
-router.post('/tenants/:id/status', (req, res) => {
+// Update tenant status directly (for testing & manual management)
+router.post('/tenants/:id/status', async (req, res) => {
   const ownerId = req.owner.id;
   const { status } = req.body;
   if (!status) return res.status(400).json({ error: 'Status is required' });
-  const updated = db.updateForOwner('tenants', ownerId, req.params.id, { status });
-  if (!updated) return res.status(404).json({ error: 'Tenant not found or access denied' });
-  res.json(updated);
+  try {
+    const updated = await db.updateForOwner('tenants', ownerId, req.params.id, { status });
+    if (!updated) return res.status(404).json({ error: 'Tenant not found or access denied' });
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ================= SMART CALLER ID POOL ================= //
-router.get('/phone-pool', (req, res) => {
+router.get('/phone-pool', async (req, res) => {
   const ownerId = req.owner.id;
-  const pool = NumberPoolService.getPool(ownerId);
-  res.json(pool);
+  try {
+    const pool = await NumberPoolService.getPool(ownerId);
+    res.json(pool);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-router.post('/phone-pool', (req, res) => {
+router.post('/phone-pool', async (req, res) => {
   const ownerId = req.owner.id;
   const { phone_number, label, provider } = req.body;
   if (!phone_number) return res.status(400).json({ error: 'Phone number is required' });
-  const created = NumberPoolService.addNumber(ownerId, { phone_number, label, provider });
-  res.status(201).json(created);
+  try {
+    const created = await NumberPoolService.addNumber(ownerId, { phone_number, label, provider });
+    res.status(201).json(created);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-router.put('/phone-pool/:id', (req, res) => {
+router.put('/phone-pool/:id', async (req, res) => {
   const ownerId = req.owner.id;
-  const updated = NumberPoolService.updateNumber(ownerId, req.params.id, req.body);
-  if (!updated) return res.status(404).json({ error: 'Number not found or access denied' });
-  res.json(updated);
+  try {
+    const updated = await NumberPoolService.updateNumber(ownerId, req.params.id, req.body);
+    if (!updated) return res.status(404).json({ error: 'Number not found or access denied' });
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-router.delete('/phone-pool/:id', (req, res) => {
+router.delete('/phone-pool/:id', async (req, res) => {
   const ownerId = req.owner.id;
-  const deleted = NumberPoolService.deleteNumber(ownerId, req.params.id);
-  if (!deleted) return res.status(404).json({ error: 'Number not found or access denied' });
-  res.json({ success: true, message: 'Caller line removed' });
+  try {
+    const deleted = await NumberPoolService.deleteNumber(ownerId, req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Number not found or access denied' });
+    res.json({ success: true, message: 'Caller line removed' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ================= AUTOMATION RULES ================= //
-router.get('/rules', (req, res) => {
+router.get('/rules', async (req, res) => {
   const ownerId = req.owner.id;
-  res.json(db.getByOwner('rules', ownerId));
+  try {
+    const rules = await db.getByOwner('rules', ownerId);
+    res.json(rules);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-router.post('/rules', (req, res) => {
+router.post('/rules', async (req, res) => {
   const ownerId = req.owner.id;
   const newRule = {
     id: `rule-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     ...req.body,
     is_active: req.body.is_active !== false
   };
-  db.insertForOwner('rules', ownerId, newRule);
-  res.status(201).json(newRule);
+  try {
+    const inserted = await db.insertForOwner('rules', ownerId, newRule);
+    res.status(201).json(inserted);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-router.put('/rules/:id', (req, res) => {
+router.put('/rules/:id', async (req, res) => {
   const ownerId = req.owner.id;
-  const updated = db.updateForOwner('rules', ownerId, req.params.id, req.body);
-  if (!updated) return res.status(404).json({ error: 'Rule not found or access denied' });
-  res.json(updated);
+  try {
+    const updated = await db.updateForOwner('rules', ownerId, req.params.id, req.body);
+    if (!updated) return res.status(404).json({ error: 'Rule not found or access denied' });
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-router.delete('/rules/:id', (req, res) => {
+router.delete('/rules/:id', async (req, res) => {
   const ownerId = req.owner.id;
-  const deleted = db.deleteForOwner('rules', ownerId, req.params.id);
-  if (!deleted) return res.status(404).json({ error: 'Rule not found or access denied' });
-  res.json({ success: true, message: 'Rule deleted' });
+  try {
+    const deleted = await db.deleteForOwner('rules', ownerId, req.params.id);
+    if (!deleted) return res.status(404).json({ error: 'Rule not found or access denied' });
+    res.json({ success: true, message: 'Rule deleted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Manual Run of Automated Due Reminder Cycle for Authenticated Owner
@@ -233,10 +319,10 @@ router.post('/automations/run-now', async (req, res) => {
 router.post('/simulator/trigger-call', async (req, res) => {
   const ownerId = req.owner.id;
   const { tenant_id, custom_script, channel } = req.body;
-  const tenant = db.findByOwner('tenants', ownerId, t => t.id === tenant_id);
-  if (!tenant) return res.status(404).json({ error: 'Tenant not found in your account' });
-
   try {
+    const tenant = await db.findByOwner('tenants', ownerId, tenant_id);
+    if (!tenant) return res.status(404).json({ error: 'Tenant not found in your account' });
+
     let logResult;
     if (channel === 'whatsapp') {
       const defaultWhatsAppScript = `Hello {tenant_name}! This is a reminder regarding your rent of {currency}{rent_amount} for {property_name} ({unit_number}) due on {due_date}. Please pay via UPI or Bank transfer. Thank you! - {owner_name}
@@ -256,7 +342,6 @@ router.post('/simulator/trigger-call', async (req, res) => {
         ruleName: 'Manual Reminder Test'
       });
     } else {
-      // AI Voice call with anti-blocking caller ID rotation (Tamil First, English Next)
       const defaultVoiceScript = `வணக்கம் {tenant_name}. இது {owner_name} இடமிருந்து வரும் தானியங்கி வாடகை நினைவூட்டல் அழைப்பு. {property_name} {unit_number} வீட்டின் வாடகைத் தொகை {currency}{rent_amount} செலுத்துவதற்கு நிலுவையில் உள்ளது. தயவுசெய்து உங்கள் வாடகையை உடனடியாக செலுத்தவும். நன்றி.
 
 Hello {tenant_name}. This is an automated call from {owner_name} regarding your rent of {currency}{rent_amount} for {property_name} ({unit_number}). Please make payment as soon as possible. Thank you.`;
@@ -276,13 +361,15 @@ Hello {tenant_name}. This is an automated call from {owner_name} regarding your 
 
 // ================= META WHATSAPP BUSINESS CLOUD API ================= //
 
-// ================= META WHATSAPP BUSINESS CLOUD API ================= //
-
 // Get connection and configuration status (Safe: Never exposes the access token)
-router.get('/whatsapp/status', (req, res) => {
+router.get('/whatsapp/status', async (req, res) => {
   const ownerId = req.owner.id;
-  const status = WhatsAppService.getStatus(ownerId);
-  res.json({ success: true, ...status });
+  try {
+    const status = await WhatsAppService.getStatus(ownerId);
+    res.json({ success: true, ...status });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Live verification with Meta Graph API for Phone Number ID & Token validity
@@ -423,17 +510,18 @@ router.post('/whatsapp/send', async (req, res) => {
     return res.status(400).json({ success: false, error: 'Tenant ID is required' });
   }
 
-  // Strictly verify that the tenant belongs to the authenticated owner
-  const tenant = db.findByOwner('tenants', ownerId, t => t.id === tenantId);
-  if (!tenant) {
-    return res.status(404).json({ success: false, error: 'Tenant not found in your account or access denied' });
-  }
-
-  const settings = db.getSettingsForOwner(ownerId);
-  const rawMessage = message || customMessage || `Hello {tenant_name}! This is a reminder regarding your rent of {currency}{rent_amount} for {property_name} ({unit_number}) due on {due_date}. Thank you! - {owner_name}`;
-  const renderedMessage = TelecomService.renderTemplate(rawMessage, tenant, settings);
-
   try {
+    // Strictly verify that the tenant belongs to the authenticated owner
+    const tenant = await db.findByOwner('tenants', ownerId, tenantId);
+    if (!tenant) {
+      return res.status(404).json({ success: false, error: 'Tenant not found in your account or access denied' });
+    }
+
+    const settings = await db.getSettingsForOwner(ownerId);
+    const property = await db.findByOwner('properties', ownerId, tenant.property_id);
+    const rawMessage = message || customMessage || `Hello {tenant_name}! This is a reminder regarding your rent of {currency}{rent_amount} for {property_name} ({unit_number}) due on {due_date}. Thank you! - {owner_name}`;
+    const renderedMessage = TelecomService.renderTemplate(rawMessage, tenant, settings, property);
+
     const result = await WhatsAppService.sendUtilityMessage({
       to: tenant.phone,
       body: renderedMessage,
@@ -463,94 +551,137 @@ router.post('/whatsapp/send', async (req, res) => {
 });
 
 // ================= LOGS & AUDIT TRAIL ================= //
-router.get('/logs', (req, res) => {
+router.get('/logs', async (req, res) => {
   const ownerId = req.owner.id;
-  const logs = db.getByOwner('automation_logs', ownerId);
-  res.json(logs);
+  try {
+    const logs = await db.getByOwner('automation_logs', ownerId);
+    res.json(logs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-router.delete('/logs/clear', (req, res) => {
+router.delete('/logs/clear', async (req, res) => {
   const ownerId = req.owner.id;
-  const logs = db.get('automation_logs');
-  const remaining = logs.filter(l => l.owner_id !== ownerId);
-  db.set('automation_logs', remaining);
-  res.json({ success: true, message: 'Activity logs cleared' });
+  try {
+    if (db.isPostgres) {
+      await db.query('DELETE FROM automation_logs WHERE owner_id = $1', [ownerId]);
+    } else {
+      const logs = await db.get('automation_logs');
+      const remaining = logs.filter(l => l.owner_id !== ownerId);
+      db.localData.automation_logs = remaining;
+      db.saveLocal();
+    }
+    res.json({ success: true, message: 'Activity logs cleared' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ================= PAYMENTS HISTORY ================= //
-router.get('/payments', (req, res) => {
+router.get('/payments', async (req, res) => {
   const ownerId = req.owner.id;
-  res.json(db.getByOwner('payment_history', ownerId));
+  try {
+    const payments = await db.getByOwner('payment_history', ownerId);
+    res.json(payments);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ================= SETTINGS ================= //
-router.get('/settings', (req, res) => {
+router.get('/settings', async (req, res) => {
   const ownerId = req.owner.id;
-  res.json(db.getSettingsForOwner(ownerId));
+  try {
+    const settings = await db.getSettingsForOwner(ownerId);
+    res.json(settings);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-router.put('/settings', (req, res) => {
+router.put('/settings', async (req, res) => {
   const ownerId = req.owner.id;
-  const updated = db.updateSettingsForOwner(ownerId, req.body);
-  res.json(updated);
+  try {
+    const updated = await db.updateSettingsForOwner(ownerId, req.body);
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ================= DASHBOARD SUMMARY METRICS ================= //
-router.get('/dashboard-metrics', (req, res) => {
+router.get('/dashboard-metrics', async (req, res) => {
   const ownerId = req.owner.id;
-  const tenants = db.getByOwner('tenants', ownerId);
-  const properties = db.getByOwner('properties', ownerId);
-  const phoneNumbers = db.getByOwner('phone_numbers', ownerId);
-  const logs = db.getByOwner('automation_logs', ownerId);
-  const settings = db.getSettingsForOwner(ownerId);
+  try {
+    const tenants = await db.getByOwner('tenants', ownerId);
+    const properties = await db.getByOwner('properties', ownerId);
+    const phoneNumbers = await db.getByOwner('phone_numbers', ownerId);
+    const logs = await db.getByOwner('automation_logs', ownerId);
+    const settings = await db.getSettingsForOwner(ownerId);
 
-  const totalRentExpected = tenants.reduce((acc, t) => acc + Number(t.rent_amount || 0), 0);
-  const totalRentCollected = tenants.filter(t => t.status === 'PAID').reduce((acc, t) => acc + Number(t.rent_amount || 0), 0);
-  const overdueCount = tenants.filter(t => t.status === 'OVERDUE').length;
-  const dueTodayCount = tenants.filter(t => t.status === 'DUE_TODAY').length;
-  const paidCount = tenants.filter(t => t.status === 'PAID').length;
-  const upcomingCount = tenants.filter(t => t.status === 'UPCOMING').length;
+    const totalRentExpected = tenants.reduce((acc, t) => acc + Number(t.rent_amount || 0), 0);
+    const totalRentCollected = tenants.filter(t => t.status === 'PAID').reduce((acc, t) => acc + Number(t.rent_amount || 0), 0);
+    const overdueCount = tenants.filter(t => t.status === 'OVERDUE').length;
+    const dueTodayCount = tenants.filter(t => t.status === 'DUE_TODAY').length;
+    const paidCount = tenants.filter(t => t.status === 'PAID').length;
+    const upcomingCount = tenants.filter(t => t.status === 'UPCOMING').length;
 
-  const totalCallsMade = logs.filter(l => l.channel === 'ai_call').length;
-  const totalWhatsAppSent = logs.filter(l => l.channel === 'whatsapp').length;
-  const activeNumbersCount = phoneNumbers.filter(n => n.is_active).length;
+    const totalCallsMade = logs.filter(l => l.channel === 'ai_call').length;
+    const totalWhatsAppSent = logs.filter(l => l.channel === 'whatsapp').length;
+    const activeNumbersCount = phoneNumbers.filter(n => n.is_active).length;
 
-  res.json({
-    totalProperties: properties.length,
-    totalTenants: tenants.length,
-    totalRentExpected,
-    totalRentCollected,
-    collectionRate: totalRentExpected > 0 ? Math.round((totalRentCollected / totalRentExpected) * 100) : 0,
-    overdueCount,
-    dueTodayCount,
-    paidCount,
-    upcomingCount,
-    totalCallsMade,
-    totalWhatsAppSent,
-    activeNumbersCount,
-    currencySymbol: settings?.currency_symbol || '₹'
-  });
+    res.json({
+      totalProperties: properties.length,
+      totalTenants: tenants.length,
+      totalRentExpected,
+      totalRentCollected,
+      collectionRate: totalRentExpected > 0 ? Math.round((totalRentCollected / totalRentExpected) * 100) : 0,
+      overdueCount,
+      dueTodayCount,
+      paidCount,
+      upcomingCount,
+      totalCallsMade,
+      totalWhatsAppSent,
+      activeNumbersCount,
+      currencySymbol: settings?.currency_symbol || '₹'
+    });
+  } catch (err) {
+    console.error('[API /dashboard-metrics ERROR]:', err);
+    res.status(500).json({ error: 'Failed to calculate metrics' });
+  }
 });
 
 // ================= OPTIONAL DEMO DATA CONTROLS (PER-OWNER SCOPED) ================= //
-router.post('/account/clear-demo', (req, res) => {
+router.post('/account/clear-demo', async (req, res) => {
   const ownerId = req.owner.id;
-  
-  // Clear only this owner's properties, tenants, payments, and logs
-  const filterOutOwner = (collection) => db.set(collection, db.get(collection).filter(item => item.owner_id !== ownerId));
-  
-  filterOutOwner('properties');
-  filterOutOwner('tenants');
-  filterOutOwner('payment_history');
-  filterOutOwner('automation_logs');
+  try {
+    if (db.isPostgres) {
+      await db.query('DELETE FROM properties WHERE owner_id = $1', [ownerId]);
+      await db.query('DELETE FROM tenants WHERE owner_id = $1', [ownerId]);
+      await db.query('DELETE FROM payment_history WHERE owner_id = $1', [ownerId]);
+      await db.query('DELETE FROM automation_logs WHERE owner_id = $1', [ownerId]);
+    } else {
+      const filterOutOwner = (collection) => {
+        db.localData[collection] = (db.localData[collection] || []).filter(item => item.owner_id !== ownerId);
+      };
+      filterOutOwner('properties');
+      filterOutOwner('tenants');
+      filterOutOwner('payment_history');
+      filterOutOwner('automation_logs');
+      db.saveLocal();
+    }
 
-  res.json({
-    success: true,
-    message: 'All properties and tenants cleared for your account.'
-  });
+    res.json({
+      success: true,
+      message: 'All properties and tenants cleared for your account.'
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-router.post('/account/load-demo', (req, res) => {
+router.post('/account/load-demo', async (req, res) => {
   const ownerId = req.owner.id;
   const today = new Date();
   const currentDay = today.getDate();
@@ -580,57 +711,57 @@ router.post('/account/load-demo', (req, res) => {
     }
   ];
 
-  for (const prop of demoProperties) {
-    db.insertForOwner('properties', ownerId, prop);
-  }
-
-  const demoTenants = [
-    {
-      id: `ten-${Date.now()}-1`,
-      property_id: demoProperties[0].id,
-      property_name: demoProperties[0].name,
-      unit_number: 'A-204',
-      name: 'Rahul Sharma',
-      phone: '+91 98450 12345',
-      email: 'rahul.sharma@example.com',
-      rent_amount: 22000,
-      due_day: Math.max(1, currentDay - 3),
-      grace_days: 2,
-      status: 'OVERDUE',
-      last_paid_date: null,
-      auto_call_enabled: true,
-      auto_sms_enabled: true,
-      auto_wa_enabled: true,
-      created_at: new Date().toISOString()
-    },
-    {
-      id: `ten-${Date.now()}-2`,
-      property_id: demoProperties[0].id,
-      property_name: demoProperties[0].name,
-      unit_number: 'B-301',
-      name: 'Priya Sundaram',
-      phone: '+91 98765 43210',
-      email: 'priya.sundaram@example.com',
-      rent_amount: 24000,
-      due_day: currentDay,
-      grace_days: 3,
-      status: 'DUE_TODAY',
-      last_paid_date: null,
-      auto_call_enabled: true,
-      auto_sms_enabled: true,
-      auto_wa_enabled: true,
-      created_at: new Date().toISOString()
+  try {
+    for (const prop of demoProperties) {
+      await db.insertForOwner('properties', ownerId, prop);
     }
-  ];
 
-  for (const tenant of demoTenants) {
-    db.insertForOwner('tenants', ownerId, tenant);
+    const demoTenants = [
+      {
+        id: `ten-${Date.now()}-1`,
+        property_id: demoProperties[0].id,
+        unit_number: 'A-204',
+        name: 'Rahul Sharma',
+        phone: '+91 98450 12345',
+        email: 'rahul.sharma@example.com',
+        rent_amount: 22000,
+        due_day: Math.max(1, currentDay - 3),
+        grace_days: 2,
+        status: 'OVERDUE',
+        auto_call_enabled: true,
+        auto_sms_enabled: true,
+        auto_wa_enabled: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: `ten-${Date.now()}-2`,
+        property_id: demoProperties[0].id,
+        unit_number: 'B-301',
+        name: 'Priya Sundaram',
+        phone: '+91 98765 43210',
+        email: 'priya.sundaram@example.com',
+        rent_amount: 24000,
+        due_day: currentDay,
+        grace_days: 3,
+        status: 'DUE_TODAY',
+        auto_call_enabled: true,
+        auto_sms_enabled: true,
+        auto_wa_enabled: true,
+        created_at: new Date().toISOString()
+      }
+    ];
+
+    for (const tenant of demoTenants) {
+      await db.insertForOwner('tenants', ownerId, tenant);
+    }
+
+    res.json({
+      success: true,
+      message: 'Sample demo properties and tenants loaded into your account.'
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-
-  res.json({
-    success: true,
-    message: 'Sample demo properties and tenants loaded into your account.'
-  });
 });
 
 export default router;

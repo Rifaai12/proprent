@@ -250,6 +250,11 @@ export const api = {
     });
   },
 
+  // Database Health & Persistence Check
+  getDbHealth: async () => {
+    return safeFetch(`${API_BASE}/health/db`);
+  },
+
   // Voice Call Simulator
   triggerSimulatorCall: async ({ tenant_id, channel, custom_script }) => {
     return safeFetch(`${API_BASE}/simulator/trigger-call`, {

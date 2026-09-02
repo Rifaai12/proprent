@@ -9,17 +9,16 @@ export class NumberPoolService {
   /**
    * Get all active caller IDs in the pool for a specific owner
    */
-  static getPool(ownerId) {
-    return db.getByOwner('phone_numbers', ownerId);
+  static async getPool(ownerId) {
+    return await db.getByOwner('phone_numbers', ownerId);
   }
 
   /**
    * Add a new phone number to the owner's rotating pool
    */
-  static addNumber(ownerId, { phone_number, label, provider }) {
+  static async addNumber(ownerId, { phone_number, label, provider }) {
     const newNumber = {
       id: `num-${Date.now()}`,
-      owner_id: ownerId,
       phone_number,
       label: label || `Caller Line ${Date.now().toString().slice(-4)}`,
       provider: provider || 'Twilio / Cloud DID',
@@ -28,32 +27,33 @@ export class NumberPoolService {
       last_used_at: null,
       reputation: 'Clean (100% Delivery)'
     };
-    return db.insertForOwner('phone_numbers', ownerId, newNumber);
+    return await db.insertForOwner('phone_numbers', ownerId, newNumber);
   }
 
   /**
    * Toggle number active status or update for owner
    */
-  static updateNumber(ownerId, id, updates) {
-    return db.updateForOwner('phone_numbers', ownerId, id, updates);
+  static async updateNumber(ownerId, id, updates) {
+    return await db.updateForOwner('phone_numbers', ownerId, id, updates);
   }
 
   /**
    * Delete number from owner pool
    */
-  static deleteNumber(ownerId, id) {
-    return db.deleteForOwner('phone_numbers', ownerId, id);
+  static async deleteNumber(ownerId, id) {
+    return await db.deleteForOwner('phone_numbers', ownerId, id);
   }
 
   /**
    * Core Anti-Blocking Selection Algorithm (Scoped to Owner & Tenant):
    */
-  static selectRotatedCallerId(ownerId, tenantId) {
-    const activeNumbers = db.filterByOwner('phone_numbers', ownerId, n => n.is_active);
+  static async selectRotatedCallerId(ownerId, tenantId) {
+    const allNumbers = await db.getByOwner('phone_numbers', ownerId);
+    const activeNumbers = allNumbers.filter(n => n.is_active);
 
     if (!activeNumbers || activeNumbers.length === 0) {
       // Fallback to owner's settings phone number
-      const settings = db.getSettingsForOwner(ownerId);
+      const settings = await db.getSettingsForOwner(ownerId);
       return {
         phone_number: settings.owner_phone || '+91 80000 00000',
         label: 'Default Property Line',
@@ -66,7 +66,8 @@ export class NumberPoolService {
     }
 
     // Get previous call logs for this tenant to identify what numbers were recently used
-    const recentTenantCalls = db.filterByOwner('automation_logs', ownerId, log => 
+    const allLogs = await db.getByOwner('automation_logs', ownerId);
+    const recentTenantCalls = allLogs.filter(log => 
       log.tenant_id === tenantId && log.channel === 'ai_call'
     ).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
@@ -92,7 +93,7 @@ export class NumberPoolService {
     const chosenNumber = candidateNumbers[0];
 
     // Record usage metrics
-    db.updateForOwner('phone_numbers', ownerId, chosenNumber.id, {
+    await db.updateForOwner('phone_numbers', ownerId, chosenNumber.id, {
       calls_count: (chosenNumber.calls_count || 0) + 1,
       last_used_at: new Date().toISOString()
     });

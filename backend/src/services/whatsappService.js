@@ -39,7 +39,7 @@ export class WhatsAppService {
    * 1. Environment Variables (WHATSAPP_ACCESS_TOKEN & WHATSAPP_PHONE_NUMBER_ID)
    * 2. Owner Settings (if environment variables are not set or if explicitly configured)
    */
-  static getCredentials(ownerId) {
+  static async getCredentials(ownerId) {
     const envToken = process.env.WHATSAPP_ACCESS_TOKEN;
     const envPhoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
     const envWabaId = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID;
@@ -49,16 +49,18 @@ export class WhatsAppService {
 
     let ownerCreds = null;
     if (ownerId) {
-      const settings = db.getSettingsForOwner(ownerId);
-      const ownerWa = settings?.telecom_providers?.whatsapp_cloud;
-      if (ownerWa?.access_token && ownerWa.access_token.trim().length > 10 && ownerWa?.phone_number_id) {
-        ownerCreds = {
-          accessToken: ownerWa.access_token.trim(),
-          phoneNumberId: ownerWa.phone_number_id.trim(),
-          wabaId: (ownerWa.business_account_id || '').trim(),
-          source: 'OWNER_SETTINGS'
-        };
-      }
+      try {
+        const settings = await db.getSettingsForOwner(ownerId);
+        const ownerWa = settings?.telecom_providers?.whatsapp_cloud;
+        if (ownerWa?.access_token && ownerWa.access_token.trim().length > 10 && ownerWa?.phone_number_id) {
+          ownerCreds = {
+            accessToken: ownerWa.access_token.trim(),
+            phoneNumberId: ownerWa.phone_number_id.trim(),
+            wabaId: (ownerWa.business_account_id || '').trim(),
+            source: 'OWNER_SETTINGS'
+          };
+        }
+      } catch (e) {}
     }
 
     if (hasEnvCreds) {
@@ -90,8 +92,8 @@ export class WhatsAppService {
   /**
    * Safe status summary for frontend. NEVER exposes the access token.
    */
-  static getStatus(ownerId) {
-    const creds = this.getCredentials(ownerId);
+  static async getStatus(ownerId) {
+    const creds = await this.getCredentials(ownerId);
     const isConfigured = Boolean(creds.accessToken && creds.phoneNumberId);
     const version = this.getApiVersion();
 
@@ -117,7 +119,7 @@ export class WhatsAppService {
    * Endpoint: GET https://graph.facebook.com/<VERSION>/<PHONE_NUMBER_ID>
    */
   static async verifyWithMeta(ownerId) {
-    const creds = this.getCredentials(ownerId);
+    const creds = await this.getCredentials(ownerId);
     if (!creds.accessToken || !creds.phoneNumberId) {
       return {
         verified: false,
@@ -178,7 +180,7 @@ export class WhatsAppService {
    * Captures full diagnostics: HTTP status, WAMID, error code, subcode, message, type, fbtrace_id.
    */
   static async _dispatchToMeta({ payload, ownerId, tenantId, channelType, ruleName, triggerEvent }) {
-    const creds = this.getCredentials(ownerId);
+    const creds = await this.getCredentials(ownerId);
     const version = this.getApiVersion();
 
     if (!creds.accessToken || !creds.phoneNumberId) {
@@ -193,7 +195,7 @@ export class WhatsAppService {
       };
 
       if (ownerId) {
-        db.insertForOwner('automation_logs', ownerId, {
+        await db.insertForOwner('automation_logs', ownerId, {
           id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           owner_id: ownerId,
           tenant_id: tenantId || null,
@@ -261,7 +263,7 @@ export class WhatsAppService {
       });
 
       if (ownerId) {
-        db.insertForOwner('automation_logs', ownerId, {
+        await db.insertForOwner('automation_logs', ownerId, {
           id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           owner_id: ownerId,
           tenant_id: tenantId || null,
@@ -291,7 +293,7 @@ export class WhatsAppService {
       throw customError;
     }
 
-    // Success response: Meta returns { messaging_product: "whatsapp", contacts: [...], messages: [{ id: "wamid..." }] }
+    // Success response
     const messageId = metaData.messages?.[0]?.id || `wamid.${Date.now()}`;
     console.log(`[WHATSAPP SUCCESS] Message accepted by Meta. WAMID: ${messageId}`);
 
@@ -312,7 +314,7 @@ export class WhatsAppService {
         error_message: null,
         timestamp: new Date().toISOString()
       };
-      db.insertForOwner('automation_logs', ownerId, logEntry);
+      await db.insertForOwner('automation_logs', ownerId, logEntry);
     }
 
     return {

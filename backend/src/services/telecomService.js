@@ -6,9 +6,7 @@ export class TelecomService {
   /**
    * Replace template tokens with real tenant & property data
    */
-  static renderTemplate(template, tenant, settings) {
-    const ownerId = tenant.owner_id;
-    const property = db.findByOwner('properties', ownerId, p => p.id === tenant.property_id);
+  static renderTemplate(template, tenant, settings, property = null) {
     const currency = settings.currency_symbol || '₹';
     const dueDay = tenant.due_day;
     const now = new Date();
@@ -32,13 +30,14 @@ export class TelecomService {
    */
   static async dispatchVoiceCall({ tenant, scriptText, ruleName, triggerEvent }) {
     const ownerId = tenant.owner_id;
-    const settings = db.getSettingsForOwner(ownerId);
+    const settings = await db.getSettingsForOwner(ownerId);
+    const property = await db.findByOwner('properties', ownerId, tenant.property_id);
     
     // Select rotated caller ID to prevent tenant from blocking the number
-    const callerIdObj = NumberPoolService.selectRotatedCallerId(ownerId, tenant.id);
+    const callerIdObj = await NumberPoolService.selectRotatedCallerId(ownerId, tenant.id);
     const callerNumber = callerIdObj.phone_number;
 
-    const renderedScript = this.renderTemplate(scriptText, tenant, settings);
+    const renderedScript = this.renderTemplate(scriptText, tenant, settings, property);
 
     const logEntry = {
       id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -52,10 +51,9 @@ export class TelecomService {
       trigger_event: triggerEvent || ruleName || 'Automated AI Voice Reminder',
       status: 'answered',
       content: renderedScript,
-      call_duration_sec: Math.floor(Math.random() * 25) + 30, // 30-55 sec duration
+      call_duration_sec: Math.floor(Math.random() * 25) + 30,
       tenant_response_intent: 'Voice reminder delivered successfully.',
-      timestamp: new Date().toISOString(),
-      mode: settings.simulation_mode ? 'SANDBOX_SIMULATED' : 'LIVE_PRODUCTION'
+      timestamp: new Date().toISOString()
     };
 
     if (!settings.simulation_mode) {
@@ -63,11 +61,11 @@ export class TelecomService {
         console.log(`[LIVE TELECOM] Initiating live AI call via ${callerNumber} to ${tenant.phone}...`);
       } catch (err) {
         logEntry.status = 'failed';
-        logEntry.content = `Live Call Error: ${err.message}`;
+        logEntry.error_message = `Live Call Error: ${err.message}`;
       }
     }
 
-    db.insertForOwner('automation_logs', ownerId, logEntry);
+    await db.insertForOwner('automation_logs', ownerId, logEntry);
     return logEntry;
   }
 
@@ -76,8 +74,9 @@ export class TelecomService {
    */
   static async dispatchWhatsAppMessage({ tenant, messageText, ruleName, triggerEvent }) {
     const ownerId = tenant.owner_id;
-    const settings = db.getSettingsForOwner(ownerId);
-    const renderedMessage = this.renderTemplate(messageText, tenant, settings);
+    const settings = await db.getSettingsForOwner(ownerId);
+    const property = await db.findByOwner('properties', ownerId, tenant.property_id);
+    const renderedMessage = this.renderTemplate(messageText, tenant, settings, property);
 
     // If live production mode is active and Meta credentials exist, call Meta WhatsApp Cloud API directly
     const waCreds = WhatsAppService.getCredentials(ownerId);
@@ -95,7 +94,6 @@ export class TelecomService {
         return sendResult.log;
       } catch (liveSendErr) {
         console.error('[LIVE WHATSAPP FAILED]:', liveSendErr.message);
-        // Returns the failed log entry generated inside sendWhatsAppMessage
         return {
           id: `log-${Date.now()}`,
           status: 'failed',
@@ -119,11 +117,10 @@ export class TelecomService {
       status: 'delivered',
       content: renderedMessage,
       call_duration_sec: null,
-      timestamp: new Date().toISOString(),
-      mode: 'SANDBOX_SIMULATED'
+      timestamp: new Date().toISOString()
     };
 
-    db.insertForOwner('automation_logs', ownerId, logEntry);
+    await db.insertForOwner('automation_logs', ownerId, logEntry);
     return logEntry;
   }
 
@@ -132,8 +129,9 @@ export class TelecomService {
    */
   static async dispatchSMS({ tenant, messageText, ruleName, triggerEvent }) {
     const ownerId = tenant.owner_id;
-    const settings = db.getSettingsForOwner(ownerId);
-    const renderedMessage = this.renderTemplate(messageText, tenant, settings);
+    const settings = await db.getSettingsForOwner(ownerId);
+    const property = await db.findByOwner('properties', ownerId, tenant.property_id);
+    const renderedMessage = this.renderTemplate(messageText, tenant, settings, property);
 
     const logEntry = {
       id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
@@ -148,11 +146,10 @@ export class TelecomService {
       status: 'delivered',
       content: renderedMessage,
       call_duration_sec: null,
-      timestamp: new Date().toISOString(),
-      mode: settings.simulation_mode ? 'SANDBOX_SIMULATED' : 'LIVE_PRODUCTION'
+      timestamp: new Date().toISOString()
     };
 
-    db.insertForOwner('automation_logs', ownerId, logEntry);
+    await db.insertForOwner('automation_logs', ownerId, logEntry);
     return logEntry;
   }
 }

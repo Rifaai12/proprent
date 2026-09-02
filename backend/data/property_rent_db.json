@@ -1,6 +1,43 @@
 {
   "properties": [
     {
+      "id": "prop-1788371465053-973",
+      "name": "Bob Ocean Plaza",
+      "type": "Commercial",
+      "address": "",
+      "city": "",
+      "state": "",
+      "units_count": 10,
+      "default_rent": 75000,
+      "created_at": "2026-09-02T17:51:05.053Z",
+      "owner_id": "owner-1788371464990-260"
+    },
+    {
+      "id": "prop-1788371464884-799",
+      "name": "Alice Green Heights",
+      "type": "Apartment",
+      "address": "",
+      "city": "",
+      "state": "",
+      "units_count": 5,
+      "default_rent": 30000,
+      "created_at": "2026-09-02T17:51:04.884Z",
+      "owner_id": "owner-1788371464857-350"
+    },
+    {
+      "id": "prop-1788371457864-781",
+      "name": "Grand Palm Towers",
+      "type": "Commercial",
+      "address": "100 Marina Boulevard",
+      "city": "Chennai",
+      "state": "Tamil Nadu",
+      "units_count": 14,
+      "default_rent": 90000,
+      "created_at": "2026-09-02T17:50:57.864Z",
+      "owner_id": "owner-1788371457836-597",
+      "updated_at": "2026-09-02T17:50:58.008Z"
+    },
+    {
       "id": "prop-1788370755865-738",
       "name": "Bob Ocean Plaza",
       "type": "Commercial",
@@ -131,6 +168,57 @@
     }
   ],
   "tenants": [
+    {
+      "id": "ten-1788371464899-987",
+      "property_id": "prop-1788371464884-799",
+      "unit_number": "101",
+      "name": "Ravi Kumar (Alice Tenant)",
+      "phone": "+91 98450 11111",
+      "email": "",
+      "rent_amount": 30000,
+      "due_day": 5,
+      "grace_days": 3,
+      "status": "UPCOMING",
+      "auto_call_enabled": true,
+      "auto_sms_enabled": true,
+      "auto_wa_enabled": true,
+      "created_at": "2026-09-02T17:51:04.899Z",
+      "owner_id": "owner-1788371464857-350"
+    },
+    {
+      "id": "ten-1788371462217-947",
+      "property_id": null,
+      "unit_number": "101",
+      "name": "Suresh Kumar (Alice Tenant)",
+      "phone": "+91 98765 43210",
+      "email": "",
+      "rent_amount": 25000,
+      "due_day": 5,
+      "grace_days": 3,
+      "status": "UPCOMING",
+      "auto_call_enabled": true,
+      "auto_sms_enabled": true,
+      "auto_wa_enabled": true,
+      "created_at": "2026-09-02T17:51:02.217Z",
+      "owner_id": "owner-1788371462083-620"
+    },
+    {
+      "id": "ten-1788371458019-765",
+      "property_id": "prop-1788371457864-781",
+      "unit_number": "Penthouse-01",
+      "name": "Dr. Rajesh Kumar",
+      "phone": "+91 98403 92047",
+      "email": "rajesh@example.com",
+      "rent_amount": 90000,
+      "due_day": 5,
+      "grace_days": 3,
+      "status": "UPCOMING",
+      "auto_call_enabled": true,
+      "auto_sms_enabled": true,
+      "auto_wa_enabled": true,
+      "created_at": "2026-09-02T17:50:58.019Z",
+      "owner_id": "owner-1788371457836-597"
+    },
     {
       "id": "ten-1788370755707-758",
       "property_id": "prop-1788370755702-128",
@@ -357,6 +445,138 @@
     }
   ],
   "phone_numbers": [
+    {
+      "id": "num-1788371465007-2",
+      "phone_number": "+91 80474 81002",
+      "label": "Line Beta (Rotated Backup Line)",
+      "provider": "Twilio Virtual DID Pool",
+      "is_active": true,
+      "calls_count": 0,
+      "reputation": "Clean (100% Delivery)",
+      "owner_id": "owner-1788371464990-260",
+      "created_at": "2026-09-02T17:51:05.007Z"
+    },
+    {
+      "id": "num-1788371465005-1",
+      "phone_number": "+91 80474 81001",
+      "label": "Line Alpha (Primary Calling Line)",
+      "provider": "Twilio Virtual DID Pool",
+      "is_active": true,
+      "calls_count": 0,
+      "reputation": "Clean (100% Delivery)",
+      "owner_id": "owner-1788371464990-260",
+      "created_at": "2026-09-02T17:51:05.005Z"
+    },
+    {
+      "id": "num-1788371464871-2",
+      "phone_number": "+91 80474 81002",
+      "label": "Line Beta (Rotated Backup Line)",
+      "provider": "Twilio Virtual DID Pool",
+      "is_active": true,
+      "calls_count": 0,
+      "reputation": "Clean (100% Delivery)",
+      "owner_id": "owner-1788371464857-350",
+      "created_at": "2026-09-02T17:51:04.871Z"
+    },
+    {
+      "id": "num-1788371464870-1",
+      "phone_number": "+91 80474 81001",
+      "label": "Line Alpha (Primary Calling Line)",
+      "provider": "Twilio Virtual DID Pool",
+      "is_active": true,
+      "calls_count": 0,
+      "reputation": "Clean (100% Delivery)",
+      "owner_id": "owner-1788371464857-350",
+      "created_at": "2026-09-02T17:51:04.870Z"
+    },
+    {
+      "id": "num-1788371462205-2",
+      "phone_number": "+91 80474 81002",
+      "label": "Line Beta (Rotated Backup Line)",
+      "provider": "Twilio Virtual DID Pool",
+      "is_active": true,
+      "calls_count": 0,
+      "reputation": "Clean (100% Delivery)",
+      "owner_id": "owner-1788371462190-365",
+      "created_at": "2026-09-02T17:51:02.205Z"
+    },
+    {
+      "id": "num-1788371462203-1",
+      "phone_number": "+91 80474 81001",
+      "label": "Line Alpha (Primary Calling Line)",
+      "provider": "Twilio Virtual DID Pool",
+      "is_active": true,
+      "calls_count": 0,
+      "reputation": "Clean (100% Delivery)",
+      "owner_id": "owner-1788371462190-365",
+      "created_at": "2026-09-02T17:51:02.203Z"
+    },
+    {
+      "id": "num-1788371462101-2",
+      "phone_number": "+91 80474 81002",
+      "label": "Line Beta (Rotated Backup Line)",
+      "provider": "Twilio Virtual DID Pool",
+      "is_active": true,
+      "calls_count": 0,
+      "reputation": "Clean (100% Delivery)",
+      "owner_id": "owner-1788371462083-620",
+      "created_at": "2026-09-02T17:51:02.101Z"
+    },
+    {
+      "id": "num-1788371462098-1",
+      "phone_number": "+91 80474 81001",
+      "label": "Line Alpha (Primary Calling Line)",
+      "provider": "Twilio Virtual DID Pool",
+      "is_active": true,
+      "calls_count": 0,
+      "reputation": "Clean (100% Delivery)",
+      "owner_id": "owner-1788371462083-620",
+      "created_at": "2026-09-02T17:51:02.098Z"
+    },
+    {
+      "id": "num-1788371457978-2",
+      "phone_number": "+91 80474 81002",
+      "label": "Line Beta (Rotated Backup Line)",
+      "provider": "Twilio Virtual DID Pool",
+      "is_active": true,
+      "calls_count": 0,
+      "reputation": "Clean (100% Delivery)",
+      "owner_id": "owner-1788371457963-140",
+      "created_at": "2026-09-02T17:50:57.978Z"
+    },
+    {
+      "id": "num-1788371457977-1",
+      "phone_number": "+91 80474 81001",
+      "label": "Line Alpha (Primary Calling Line)",
+      "provider": "Twilio Virtual DID Pool",
+      "is_active": true,
+      "calls_count": 0,
+      "reputation": "Clean (100% Delivery)",
+      "owner_id": "owner-1788371457963-140",
+      "created_at": "2026-09-02T17:50:57.977Z"
+    },
+    {
+      "id": "num-1788371457853-2",
+      "phone_number": "+91 80474 81002",
+      "label": "Line Beta (Rotated Backup Line)",
+      "provider": "Twilio Virtual DID Pool",
+      "is_active": true,
+      "calls_count": 0,
+      "reputation": "Clean (100% Delivery)",
+      "owner_id": "owner-1788371457836-597",
+      "created_at": "2026-09-02T17:50:57.853Z"
+    },
+    {
+      "id": "num-1788371457851-1",
+      "phone_number": "+91 80474 81001",
+      "label": "Line Alpha (Primary Calling Line)",
+      "provider": "Twilio Virtual DID Pool",
+      "is_active": true,
+      "calls_count": 0,
+      "reputation": "Clean (100% Delivery)",
+      "owner_id": "owner-1788371457836-597",
+      "created_at": "2026-09-02T17:50:57.851Z"
+    },
     {
       "id": "num-1788370755802-2",
       "owner_id": "owner-1788370755791-510",
@@ -751,6 +971,462 @@
     }
   ],
   "rules": [
+    {
+      "id": "rule-1788371464995-5",
+      "owner_id": "owner-1788371464990-260",
+      "name": "T+5 Overdue: Critical AI Call Notice (Tamil First, English Next) + WhatsApp",
+      "trigger_type": "after_due",
+      "days_offset": 5,
+      "channels": [
+        "ai_call",
+        "whatsapp",
+        "sms"
+      ],
+      "script_template": "இறுதி எச்சரிக்கை: வணக்கம் {tenant_name}. {property_name} {unit_number} வீட்டின் வாடகைத் தொகை {currency}{rent_amount} செலுத்துவதற்கு 5 நாட்கள் தாமதமாகிவிட்டது. சட்ட ரீதியான நடவடிக்கைகளை தவிர்க்க உடனடியாக வாடகையை செலுத்தவும்.\n\nFinal Notice for {tenant_name}: Your rent for {property_name} ({unit_number}) is overdue by 5 days. Continued delay may result in legal default actions. Please remit {currency}{rent_amount} immediately.",
+      "is_active": true,
+      "call_pool_enabled": true,
+      "created_at": "2026-09-02T17:51:05.003Z"
+    },
+    {
+      "id": "rule-1788371464995-4",
+      "owner_id": "owner-1788371464990-260",
+      "name": "T+3 Overdue: Escalated AI Call (Tamil First, English Next) + SMS",
+      "trigger_type": "after_due",
+      "days_offset": 3,
+      "channels": [
+        "ai_call",
+        "sms"
+      ],
+      "script_template": "முக்கிய அறிவிப்பு: வணக்கம் {tenant_name}. {property_name}-க்கான உங்கள் வாடகைத் தொகை {currency}{rent_amount} செலுத்துவதற்கு 3 நாட்கள் தாமதமாகிவிட்டது. அபராத கட்டணங்களை தவிர்க்க தயவுசெய்து இன்றே பணத்தை செலுத்தவும் அல்லது {owner_name}-ஐ உடனடியாக தொடர்பு கொள்ளவும்.\n\nUrgent Notice: Hello {tenant_name}. Your rent payment of {currency}{rent_amount} for {property_name} is now 3 days overdue. To avoid late fees or lease penalties, please transfer the dues today or contact {owner_name} immediately.",
+      "is_active": true,
+      "call_pool_enabled": true,
+      "created_at": "2026-09-02T17:51:05.001Z"
+    },
+    {
+      "id": "rule-1788371464995-3",
+      "owner_id": "owner-1788371464990-260",
+      "name": "T+1 Overdue: First AI Voice Call (Tamil First, English Next) + WhatsApp",
+      "trigger_type": "after_due",
+      "days_offset": 1,
+      "channels": [
+        "ai_call",
+        "whatsapp"
+      ],
+      "script_template": "வணக்கம் {tenant_name}. இது {owner_name} இடமிருந்து வரும் தானியங்கி வாடகை நினைவூட்டல் அழைப்பு. {property_name} {unit_number} வீட்டின் வாடகைத் தொகை {currency}{rent_amount} செலுத்த வேண்டிய தேதி நேற்று முடிந்துவிட்டது. தயவுசெய்து உங்கள் வாடகையை இன்றே செலுத்தவும். நன்றி.\n\nHello {tenant_name}, this is an automated reminder from {owner_name}. Your rent payment of {currency}{rent_amount} for unit {unit_number} at {property_name} was due yesterday. Please confirm your payment today. Thank you.",
+      "is_active": true,
+      "call_pool_enabled": true,
+      "created_at": "2026-09-02T17:51:04.999Z"
+    },
+    {
+      "id": "rule-1788371464995-2",
+      "owner_id": "owner-1788371464990-260",
+      "name": "T-0 Due Today: Action Notice via WhatsApp + SMS",
+      "trigger_type": "on_due",
+      "days_offset": 0,
+      "channels": [
+        "whatsapp",
+        "sms"
+      ],
+      "script_template": "Rent Due Today: Dear {tenant_name}, your rent payment of {currency}{rent_amount} for {property_name} ({unit_number}) is due today ({due_date}). Please transfer to UPI {upi_id} or bank account.\n\n---\nஇன்றே வாடகை செலுத்தும் நாள்: {tenant_name}, {property_name} ({unit_number})-க்கான உங்கள் வாடகைத் தொகை {currency}{rent_amount} இன்றே செலுத்த வேண்டும். நன்றி.",
+      "is_active": true,
+      "call_pool_enabled": false,
+      "created_at": "2026-09-02T17:51:04.997Z"
+    },
+    {
+      "id": "rule-1788371464995-1",
+      "owner_id": "owner-1788371464990-260",
+      "name": "T-3 Days: Friendly WhatsApp & SMS Reminder (English First, Tamil Next)",
+      "trigger_type": "before_due",
+      "days_offset": 3,
+      "channels": [
+        "whatsapp",
+        "sms"
+      ],
+      "script_template": "Hello {tenant_name}! This is a friendly reminder from {owner_name} that your rent payment of {currency}{rent_amount} for unit {unit_number} at {property_name} is due on {due_date}. Thank you!\n\n---\nவணக்கம் {tenant_name}! {property_name} {unit_number} வீட்டின் வாடகைத் தொகை {currency}{rent_amount}, வரும் {due_date} அன்று செலுத்தப்பட வேண்டும். நன்றி! - {owner_name}",
+      "is_active": true,
+      "call_pool_enabled": false,
+      "created_at": "2026-09-02T17:51:04.995Z"
+    },
+    {
+      "id": "rule-1788371464861-5",
+      "owner_id": "owner-1788371464857-350",
+      "name": "T+5 Overdue: Critical AI Call Notice (Tamil First, English Next) + WhatsApp",
+      "trigger_type": "after_due",
+      "days_offset": 5,
+      "channels": [
+        "ai_call",
+        "whatsapp",
+        "sms"
+      ],
+      "script_template": "இறுதி எச்சரிக்கை: வணக்கம் {tenant_name}. {property_name} {unit_number} வீட்டின் வாடகைத் தொகை {currency}{rent_amount} செலுத்துவதற்கு 5 நாட்கள் தாமதமாகிவிட்டது. சட்ட ரீதியான நடவடிக்கைகளை தவிர்க்க உடனடியாக வாடகையை செலுத்தவும்.\n\nFinal Notice for {tenant_name}: Your rent for {property_name} ({unit_number}) is overdue by 5 days. Continued delay may result in legal default actions. Please remit {currency}{rent_amount} immediately.",
+      "is_active": true,
+      "call_pool_enabled": true,
+      "created_at": "2026-09-02T17:51:04.868Z"
+    },
+    {
+      "id": "rule-1788371464861-4",
+      "owner_id": "owner-1788371464857-350",
+      "name": "T+3 Overdue: Escalated AI Call (Tamil First, English Next) + SMS",
+      "trigger_type": "after_due",
+      "days_offset": 3,
+      "channels": [
+        "ai_call",
+        "sms"
+      ],
+      "script_template": "முக்கிய அறிவிப்பு: வணக்கம் {tenant_name}. {property_name}-க்கான உங்கள் வாடகைத் தொகை {currency}{rent_amount} செலுத்துவதற்கு 3 நாட்கள் தாமதமாகிவிட்டது. அபராத கட்டணங்களை தவிர்க்க தயவுசெய்து இன்றே பணத்தை செலுத்தவும் அல்லது {owner_name}-ஐ உடனடியாக தொடர்பு கொள்ளவும்.\n\nUrgent Notice: Hello {tenant_name}. Your rent payment of {currency}{rent_amount} for {property_name} is now 3 days overdue. To avoid late fees or lease penalties, please transfer the dues today or contact {owner_name} immediately.",
+      "is_active": true,
+      "call_pool_enabled": true,
+      "created_at": "2026-09-02T17:51:04.866Z"
+    },
+    {
+      "id": "rule-1788371464861-3",
+      "owner_id": "owner-1788371464857-350",
+      "name": "T+1 Overdue: First AI Voice Call (Tamil First, English Next) + WhatsApp",
+      "trigger_type": "after_due",
+      "days_offset": 1,
+      "channels": [
+        "ai_call",
+        "whatsapp"
+      ],
+      "script_template": "வணக்கம் {tenant_name}. இது {owner_name} இடமிருந்து வரும் தானியங்கி வாடகை நினைவூட்டல் அழைப்பு. {property_name} {unit_number} வீட்டின் வாடகைத் தொகை {currency}{rent_amount} செலுத்த வேண்டிய தேதி நேற்று முடிந்துவிட்டது. தயவுசெய்து உங்கள் வாடகையை இன்றே செலுத்தவும். நன்றி.\n\nHello {tenant_name}, this is an automated reminder from {owner_name}. Your rent payment of {currency}{rent_amount} for unit {unit_number} at {property_name} was due yesterday. Please confirm your payment today. Thank you.",
+      "is_active": true,
+      "call_pool_enabled": true,
+      "created_at": "2026-09-02T17:51:04.864Z"
+    },
+    {
+      "id": "rule-1788371464861-2",
+      "owner_id": "owner-1788371464857-350",
+      "name": "T-0 Due Today: Action Notice via WhatsApp + SMS",
+      "trigger_type": "on_due",
+      "days_offset": 0,
+      "channels": [
+        "whatsapp",
+        "sms"
+      ],
+      "script_template": "Rent Due Today: Dear {tenant_name}, your rent payment of {currency}{rent_amount} for {property_name} ({unit_number}) is due today ({due_date}). Please transfer to UPI {upi_id} or bank account.\n\n---\nஇன்றே வாடகை செலுத்தும் நாள்: {tenant_name}, {property_name} ({unit_number})-க்கான உங்கள் வாடகைத் தொகை {currency}{rent_amount} இன்றே செலுத்த வேண்டும். நன்றி.",
+      "is_active": true,
+      "call_pool_enabled": false,
+      "created_at": "2026-09-02T17:51:04.862Z"
+    },
+    {
+      "id": "rule-1788371464861-1",
+      "owner_id": "owner-1788371464857-350",
+      "name": "T-3 Days: Friendly WhatsApp & SMS Reminder (English First, Tamil Next)",
+      "trigger_type": "before_due",
+      "days_offset": 3,
+      "channels": [
+        "whatsapp",
+        "sms"
+      ],
+      "script_template": "Hello {tenant_name}! This is a friendly reminder from {owner_name} that your rent payment of {currency}{rent_amount} for unit {unit_number} at {property_name} is due on {due_date}. Thank you!\n\n---\nவணக்கம் {tenant_name}! {property_name} {unit_number} வீட்டின் வாடகைத் தொகை {currency}{rent_amount}, வரும் {due_date} அன்று செலுத்தப்பட வேண்டும். நன்றி! - {owner_name}",
+      "is_active": true,
+      "call_pool_enabled": false,
+      "created_at": "2026-09-02T17:51:04.861Z"
+    },
+    {
+      "id": "rule-1788371462194-5",
+      "owner_id": "owner-1788371462190-365",
+      "name": "T+5 Overdue: Critical AI Call Notice (Tamil First, English Next) + WhatsApp",
+      "trigger_type": "after_due",
+      "days_offset": 5,
+      "channels": [
+        "ai_call",
+        "whatsapp",
+        "sms"
+      ],
+      "script_template": "இறுதி எச்சரிக்கை: வணக்கம் {tenant_name}. {property_name} {unit_number} வீட்டின் வாடகைத் தொகை {currency}{rent_amount} செலுத்துவதற்கு 5 நாட்கள் தாமதமாகிவிட்டது. சட்ட ரீதியான நடவடிக்கைகளை தவிர்க்க உடனடியாக வாடகையை செலுத்தவும்.\n\nFinal Notice for {tenant_name}: Your rent for {property_name} ({unit_number}) is overdue by 5 days. Continued delay may result in legal default actions. Please remit {currency}{rent_amount} immediately.",
+      "is_active": true,
+      "call_pool_enabled": true,
+      "created_at": "2026-09-02T17:51:02.202Z"
+    },
+    {
+      "id": "rule-1788371462194-4",
+      "owner_id": "owner-1788371462190-365",
+      "name": "T+3 Overdue: Escalated AI Call (Tamil First, English Next) + SMS",
+      "trigger_type": "after_due",
+      "days_offset": 3,
+      "channels": [
+        "ai_call",
+        "sms"
+      ],
+      "script_template": "முக்கிய அறிவிப்பு: வணக்கம் {tenant_name}. {property_name}-க்கான உங்கள் வாடகைத் தொகை {currency}{rent_amount} செலுத்துவதற்கு 3 நாட்கள் தாமதமாகிவிட்டது. அபராத கட்டணங்களை தவிர்க்க தயவுசெய்து இன்றே பணத்தை செலுத்தவும் அல்லது {owner_name}-ஐ உடனடியாக தொடர்பு கொள்ளவும்.\n\nUrgent Notice: Hello {tenant_name}. Your rent payment of {currency}{rent_amount} for {property_name} is now 3 days overdue. To avoid late fees or lease penalties, please transfer the dues today or contact {owner_name} immediately.",
+      "is_active": true,
+      "call_pool_enabled": true,
+      "created_at": "2026-09-02T17:51:02.199Z"
+    },
+    {
+      "id": "rule-1788371462194-3",
+      "owner_id": "owner-1788371462190-365",
+      "name": "T+1 Overdue: First AI Voice Call (Tamil First, English Next) + WhatsApp",
+      "trigger_type": "after_due",
+      "days_offset": 1,
+      "channels": [
+        "ai_call",
+        "whatsapp"
+      ],
+      "script_template": "வணக்கம் {tenant_name}. இது {owner_name} இடமிருந்து வரும் தானியங்கி வாடகை நினைவூட்டல் அழைப்பு. {property_name} {unit_number} வீட்டின் வாடகைத் தொகை {currency}{rent_amount} செலுத்த வேண்டிய தேதி நேற்று முடிந்துவிட்டது. தயவுசெய்து உங்கள் வாடகையை இன்றே செலுத்தவும். நன்றி.\n\nHello {tenant_name}, this is an automated reminder from {owner_name}. Your rent payment of {currency}{rent_amount} for unit {unit_number} at {property_name} was due yesterday. Please confirm your payment today. Thank you.",
+      "is_active": true,
+      "call_pool_enabled": true,
+      "created_at": "2026-09-02T17:51:02.197Z"
+    },
+    {
+      "id": "rule-1788371462194-2",
+      "owner_id": "owner-1788371462190-365",
+      "name": "T-0 Due Today: Action Notice via WhatsApp + SMS",
+      "trigger_type": "on_due",
+      "days_offset": 0,
+      "channels": [
+        "whatsapp",
+        "sms"
+      ],
+      "script_template": "Rent Due Today: Dear {tenant_name}, your rent payment of {currency}{rent_amount} for {property_name} ({unit_number}) is due today ({due_date}). Please transfer to UPI {upi_id} or bank account.\n\n---\nஇன்றே வாடகை செலுத்தும் நாள்: {tenant_name}, {property_name} ({unit_number})-க்கான உங்கள் வாடகைத் தொகை {currency}{rent_amount} இன்றே செலுத்த வேண்டும். நன்றி.",
+      "is_active": true,
+      "call_pool_enabled": false,
+      "created_at": "2026-09-02T17:51:02.196Z"
+    },
+    {
+      "id": "rule-1788371462194-1",
+      "owner_id": "owner-1788371462190-365",
+      "name": "T-3 Days: Friendly WhatsApp & SMS Reminder (English First, Tamil Next)",
+      "trigger_type": "before_due",
+      "days_offset": 3,
+      "channels": [
+        "whatsapp",
+        "sms"
+      ],
+      "script_template": "Hello {tenant_name}! This is a friendly reminder from {owner_name} that your rent payment of {currency}{rent_amount} for unit {unit_number} at {property_name} is due on {due_date}. Thank you!\n\n---\nவணக்கம் {tenant_name}! {property_name} {unit_number} வீட்டின் வாடகைத் தொகை {currency}{rent_amount}, வரும் {due_date} அன்று செலுத்தப்பட வேண்டும். நன்றி! - {owner_name}",
+      "is_active": true,
+      "call_pool_enabled": false,
+      "created_at": "2026-09-02T17:51:02.194Z"
+    },
+    {
+      "id": "rule-1788371462087-5",
+      "owner_id": "owner-1788371462083-620",
+      "name": "T+5 Overdue: Critical AI Call Notice (Tamil First, English Next) + WhatsApp",
+      "trigger_type": "after_due",
+      "days_offset": 5,
+      "channels": [
+        "ai_call",
+        "whatsapp",
+        "sms"
+      ],
+      "script_template": "இறுதி எச்சரிக்கை: வணக்கம் {tenant_name}. {property_name} {unit_number} வீட்டின் வாடகைத் தொகை {currency}{rent_amount} செலுத்துவதற்கு 5 நாட்கள் தாமதமாகிவிட்டது. சட்ட ரீதியான நடவடிக்கைகளை தவிர்க்க உடனடியாக வாடகையை செலுத்தவும்.\n\nFinal Notice for {tenant_name}: Your rent for {property_name} ({unit_number}) is overdue by 5 days. Continued delay may result in legal default actions. Please remit {currency}{rent_amount} immediately.",
+      "is_active": true,
+      "call_pool_enabled": true,
+      "created_at": "2026-09-02T17:51:02.095Z"
+    },
+    {
+      "id": "rule-1788371462087-4",
+      "owner_id": "owner-1788371462083-620",
+      "name": "T+3 Overdue: Escalated AI Call (Tamil First, English Next) + SMS",
+      "trigger_type": "after_due",
+      "days_offset": 3,
+      "channels": [
+        "ai_call",
+        "sms"
+      ],
+      "script_template": "முக்கிய அறிவிப்பு: வணக்கம் {tenant_name}. {property_name}-க்கான உங்கள் வாடகைத் தொகை {currency}{rent_amount} செலுத்துவதற்கு 3 நாட்கள் தாமதமாகிவிட்டது. அபராத கட்டணங்களை தவிர்க்க தயவுசெய்து இன்றே பணத்தை செலுத்தவும் அல்லது {owner_name}-ஐ உடனடியாக தொடர்பு கொள்ளவும்.\n\nUrgent Notice: Hello {tenant_name}. Your rent payment of {currency}{rent_amount} for {property_name} is now 3 days overdue. To avoid late fees or lease penalties, please transfer the dues today or contact {owner_name} immediately.",
+      "is_active": true,
+      "call_pool_enabled": true,
+      "created_at": "2026-09-02T17:51:02.093Z"
+    },
+    {
+      "id": "rule-1788371462087-3",
+      "owner_id": "owner-1788371462083-620",
+      "name": "T+1 Overdue: First AI Voice Call (Tamil First, English Next) + WhatsApp",
+      "trigger_type": "after_due",
+      "days_offset": 1,
+      "channels": [
+        "ai_call",
+        "whatsapp"
+      ],
+      "script_template": "வணக்கம் {tenant_name}. இது {owner_name} இடமிருந்து வரும் தானியங்கி வாடகை நினைவூட்டல் அழைப்பு. {property_name} {unit_number} வீட்டின் வாடகைத் தொகை {currency}{rent_amount} செலுத்த வேண்டிய தேதி நேற்று முடிந்துவிட்டது. தயவுசெய்து உங்கள் வாடகையை இன்றே செலுத்தவும். நன்றி.\n\nHello {tenant_name}, this is an automated reminder from {owner_name}. Your rent payment of {currency}{rent_amount} for unit {unit_number} at {property_name} was due yesterday. Please confirm your payment today. Thank you.",
+      "is_active": true,
+      "call_pool_enabled": true,
+      "created_at": "2026-09-02T17:51:02.091Z"
+    },
+    {
+      "id": "rule-1788371462087-2",
+      "owner_id": "owner-1788371462083-620",
+      "name": "T-0 Due Today: Action Notice via WhatsApp + SMS",
+      "trigger_type": "on_due",
+      "days_offset": 0,
+      "channels": [
+        "whatsapp",
+        "sms"
+      ],
+      "script_template": "Rent Due Today: Dear {tenant_name}, your rent payment of {currency}{rent_amount} for {property_name} ({unit_number}) is due today ({due_date}). Please transfer to UPI {upi_id} or bank account.\n\n---\nஇன்றே வாடகை செலுத்தும் நாள்: {tenant_name}, {property_name} ({unit_number})-க்கான உங்கள் வாடகைத் தொகை {currency}{rent_amount} இன்றே செலுத்த வேண்டும். நன்றி.",
+      "is_active": true,
+      "call_pool_enabled": false,
+      "created_at": "2026-09-02T17:51:02.089Z"
+    },
+    {
+      "id": "rule-1788371462087-1",
+      "owner_id": "owner-1788371462083-620",
+      "name": "T-3 Days: Friendly WhatsApp & SMS Reminder (English First, Tamil Next)",
+      "trigger_type": "before_due",
+      "days_offset": 3,
+      "channels": [
+        "whatsapp",
+        "sms"
+      ],
+      "script_template": "Hello {tenant_name}! This is a friendly reminder from {owner_name} that your rent payment of {currency}{rent_amount} for unit {unit_number} at {property_name} is due on {due_date}. Thank you!\n\n---\nவணக்கம் {tenant_name}! {property_name} {unit_number} வீட்டின் வாடகைத் தொகை {currency}{rent_amount}, வரும் {due_date} அன்று செலுத்தப்பட வேண்டும். நன்றி! - {owner_name}",
+      "is_active": true,
+      "call_pool_enabled": false,
+      "created_at": "2026-09-02T17:51:02.087Z"
+    },
+    {
+      "id": "rule-1788371457966-5",
+      "owner_id": "owner-1788371457963-140",
+      "name": "T+5 Overdue: Critical AI Call Notice (Tamil First, English Next) + WhatsApp",
+      "trigger_type": "after_due",
+      "days_offset": 5,
+      "channels": [
+        "ai_call",
+        "whatsapp",
+        "sms"
+      ],
+      "script_template": "இறுதி எச்சரிக்கை: வணக்கம் {tenant_name}. {property_name} {unit_number} வீட்டின் வாடகைத் தொகை {currency}{rent_amount} செலுத்துவதற்கு 5 நாட்கள் தாமதமாகிவிட்டது. சட்ட ரீதியான நடவடிக்கைகளை தவிர்க்க உடனடியாக வாடகையை செலுத்தவும்.\n\nFinal Notice for {tenant_name}: Your rent for {property_name} ({unit_number}) is overdue by 5 days. Continued delay may result in legal default actions. Please remit {currency}{rent_amount} immediately.",
+      "is_active": true,
+      "call_pool_enabled": true,
+      "created_at": "2026-09-02T17:50:57.974Z"
+    },
+    {
+      "id": "rule-1788371457966-4",
+      "owner_id": "owner-1788371457963-140",
+      "name": "T+3 Overdue: Escalated AI Call (Tamil First, English Next) + SMS",
+      "trigger_type": "after_due",
+      "days_offset": 3,
+      "channels": [
+        "ai_call",
+        "sms"
+      ],
+      "script_template": "முக்கிய அறிவிப்பு: வணக்கம் {tenant_name}. {property_name}-க்கான உங்கள் வாடகைத் தொகை {currency}{rent_amount} செலுத்துவதற்கு 3 நாட்கள் தாமதமாகிவிட்டது. அபராத கட்டணங்களை தவிர்க்க தயவுசெய்து இன்றே பணத்தை செலுத்தவும் அல்லது {owner_name}-ஐ உடனடியாக தொடர்பு கொள்ளவும்.\n\nUrgent Notice: Hello {tenant_name}. Your rent payment of {currency}{rent_amount} for {property_name} is now 3 days overdue. To avoid late fees or lease penalties, please transfer the dues today or contact {owner_name} immediately.",
+      "is_active": true,
+      "call_pool_enabled": true,
+      "created_at": "2026-09-02T17:50:57.972Z"
+    },
+    {
+      "id": "rule-1788371457966-3",
+      "owner_id": "owner-1788371457963-140",
+      "name": "T+1 Overdue: First AI Voice Call (Tamil First, English Next) + WhatsApp",
+      "trigger_type": "after_due",
+      "days_offset": 1,
+      "channels": [
+        "ai_call",
+        "whatsapp"
+      ],
+      "script_template": "வணக்கம் {tenant_name}. இது {owner_name} இடமிருந்து வரும் தானியங்கி வாடகை நினைவூட்டல் அழைப்பு. {property_name} {unit_number} வீட்டின் வாடகைத் தொகை {currency}{rent_amount} செலுத்த வேண்டிய தேதி நேற்று முடிந்துவிட்டது. தயவுசெய்து உங்கள் வாடகையை இன்றே செலுத்தவும். நன்றி.\n\nHello {tenant_name}, this is an automated reminder from {owner_name}. Your rent payment of {currency}{rent_amount} for unit {unit_number} at {property_name} was due yesterday. Please confirm your payment today. Thank you.",
+      "is_active": true,
+      "call_pool_enabled": true,
+      "created_at": "2026-09-02T17:50:57.969Z"
+    },
+    {
+      "id": "rule-1788371457966-2",
+      "owner_id": "owner-1788371457963-140",
+      "name": "T-0 Due Today: Action Notice via WhatsApp + SMS",
+      "trigger_type": "on_due",
+      "days_offset": 0,
+      "channels": [
+        "whatsapp",
+        "sms"
+      ],
+      "script_template": "Rent Due Today: Dear {tenant_name}, your rent payment of {currency}{rent_amount} for {property_name} ({unit_number}) is due today ({due_date}). Please transfer to UPI {upi_id} or bank account.\n\n---\nஇன்றே வாடகை செலுத்தும் நாள்: {tenant_name}, {property_name} ({unit_number})-க்கான உங்கள் வாடகைத் தொகை {currency}{rent_amount} இன்றே செலுத்த வேண்டும். நன்றி.",
+      "is_active": true,
+      "call_pool_enabled": false,
+      "created_at": "2026-09-02T17:50:57.968Z"
+    },
+    {
+      "id": "rule-1788371457966-1",
+      "owner_id": "owner-1788371457963-140",
+      "name": "T-3 Days: Friendly WhatsApp & SMS Reminder (English First, Tamil Next)",
+      "trigger_type": "before_due",
+      "days_offset": 3,
+      "channels": [
+        "whatsapp",
+        "sms"
+      ],
+      "script_template": "Hello {tenant_name}! This is a friendly reminder from {owner_name} that your rent payment of {currency}{rent_amount} for unit {unit_number} at {property_name} is due on {due_date}. Thank you!\n\n---\nவணக்கம் {tenant_name}! {property_name} {unit_number} வீட்டின் வாடகைத் தொகை {currency}{rent_amount}, வரும் {due_date} அன்று செலுத்தப்பட வேண்டும். நன்றி! - {owner_name}",
+      "is_active": true,
+      "call_pool_enabled": false,
+      "created_at": "2026-09-02T17:50:57.966Z"
+    },
+    {
+      "id": "rule-1788371457842-5",
+      "owner_id": "owner-1788371457836-597",
+      "name": "T+5 Overdue: Critical AI Call Notice (Tamil First, English Next) + WhatsApp",
+      "trigger_type": "after_due",
+      "days_offset": 5,
+      "channels": [
+        "ai_call",
+        "whatsapp",
+        "sms"
+      ],
+      "script_template": "இறுதி எச்சரிக்கை: வணக்கம் {tenant_name}. {property_name} {unit_number} வீட்டின் வாடகைத் தொகை {currency}{rent_amount} செலுத்துவதற்கு 5 நாட்கள் தாமதமாகிவிட்டது. சட்ட ரீதியான நடவடிக்கைகளை தவிர்க்க உடனடியாக வாடகையை செலுத்தவும்.\n\nFinal Notice for {tenant_name}: Your rent for {property_name} ({unit_number}) is overdue by 5 days. Continued delay may result in legal default actions. Please remit {currency}{rent_amount} immediately.",
+      "is_active": true,
+      "call_pool_enabled": true,
+      "created_at": "2026-09-02T17:50:57.849Z"
+    },
+    {
+      "id": "rule-1788371457842-4",
+      "owner_id": "owner-1788371457836-597",
+      "name": "T+3 Overdue: Escalated AI Call (Tamil First, English Next) + SMS",
+      "trigger_type": "after_due",
+      "days_offset": 3,
+      "channels": [
+        "ai_call",
+        "sms"
+      ],
+      "script_template": "முக்கிய அறிவிப்பு: வணக்கம் {tenant_name}. {property_name}-க்கான உங்கள் வாடகைத் தொகை {currency}{rent_amount} செலுத்துவதற்கு 3 நாட்கள் தாமதமாகிவிட்டது. அபராத கட்டணங்களை தவிர்க்க தயவுசெய்து இன்றே பணத்தை செலுத்தவும் அல்லது {owner_name}-ஐ உடனடியாக தொடர்பு கொள்ளவும்.\n\nUrgent Notice: Hello {tenant_name}. Your rent payment of {currency}{rent_amount} for {property_name} is now 3 days overdue. To avoid late fees or lease penalties, please transfer the dues today or contact {owner_name} immediately.",
+      "is_active": true,
+      "call_pool_enabled": true,
+      "created_at": "2026-09-02T17:50:57.848Z"
+    },
+    {
+      "id": "rule-1788371457842-3",
+      "owner_id": "owner-1788371457836-597",
+      "name": "T+1 Overdue: First AI Voice Call (Tamil First, English Next) + WhatsApp",
+      "trigger_type": "after_due",
+      "days_offset": 1,
+      "channels": [
+        "ai_call",
+        "whatsapp"
+      ],
+      "script_template": "வணக்கம் {tenant_name}. இது {owner_name} இடமிருந்து வரும் தானியங்கி வாடகை நினைவூட்டல் அழைப்பு. {property_name} {unit_number} வீட்டின் வாடகைத் தொகை {currency}{rent_amount} செலுத்த வேண்டிய தேதி நேற்று முடிந்துவிட்டது. தயவுசெய்து உங்கள் வாடகையை இன்றே செலுத்தவும். நன்றி.\n\nHello {tenant_name}, this is an automated reminder from {owner_name}. Your rent payment of {currency}{rent_amount} for unit {unit_number} at {property_name} was due yesterday. Please confirm your payment today. Thank you.",
+      "is_active": true,
+      "call_pool_enabled": true,
+      "created_at": "2026-09-02T17:50:57.846Z"
+    },
+    {
+      "id": "rule-1788371457842-2",
+      "owner_id": "owner-1788371457836-597",
+      "name": "T-0 Due Today: Action Notice via WhatsApp + SMS",
+      "trigger_type": "on_due",
+      "days_offset": 0,
+      "channels": [
+        "whatsapp",
+        "sms"
+      ],
+      "script_template": "Rent Due Today: Dear {tenant_name}, your rent payment of {currency}{rent_amount} for {property_name} ({unit_number}) is due today ({due_date}). Please transfer to UPI {upi_id} or bank account.\n\n---\nஇன்றே வாடகை செலுத்தும் நாள்: {tenant_name}, {property_name} ({unit_number})-க்கான உங்கள் வாடகைத் தொகை {currency}{rent_amount} இன்றே செலுத்த வேண்டும். நன்றி.",
+      "is_active": true,
+      "call_pool_enabled": false,
+      "created_at": "2026-09-02T17:50:57.845Z"
+    },
+    {
+      "id": "rule-1788371457842-1",
+      "owner_id": "owner-1788371457836-597",
+      "name": "T-3 Days: Friendly WhatsApp & SMS Reminder (English First, Tamil Next)",
+      "trigger_type": "before_due",
+      "days_offset": 3,
+      "channels": [
+        "whatsapp",
+        "sms"
+      ],
+      "script_template": "Hello {tenant_name}! This is a friendly reminder from {owner_name} that your rent payment of {currency}{rent_amount} for unit {unit_number} at {property_name} is due on {due_date}. Thank you!\n\n---\nவணக்கம் {tenant_name}! {property_name} {unit_number} வீட்டின் வாடகைத் தொகை {currency}{rent_amount}, வரும் {due_date} அன்று செலுத்தப்பட வேண்டும். நன்றி! - {owner_name}",
+      "is_active": true,
+      "call_pool_enabled": false,
+      "created_at": "2026-09-02T17:50:57.842Z"
+    },
     {
       "id": "rule-1788370755794-5",
       "owner_id": "owner-1788370755791-510",
@@ -2031,6 +2707,54 @@
   ],
   "automation_logs": [
     {
+      "id": "log-1788371462310-784",
+      "owner_id": "owner-1788371462083-620",
+      "tenant_id": null,
+      "recipient_phone": "919840392047",
+      "caller_id_used": "WHATSAPP-CLOUD-API",
+      "caller_id_label": "Meta Cloud API",
+      "channel": "whatsapp",
+      "trigger_event": "Admin Utility Test",
+      "status": "failed",
+      "content": "{\"messaging_product\":\"whatsapp\",\"recipient_type\":\"individual\",\"to\":\"919840392047\",\"type\":\"text\",\"text\":{\"body\":\"Hello! Diagnostic test.\"}}",
+      "provider_message_id": null,
+      "error_message": "Meta WhatsApp Cloud API credentials not configured. Please set WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID in environment or Settings.",
+      "timestamp": "2026-09-02T17:51:02.310Z",
+      "created_at": "2026-09-02T17:51:02.311Z"
+    },
+    {
+      "id": "log-1788371462295-532",
+      "owner_id": "owner-1788371462083-620",
+      "tenant_id": null,
+      "recipient_phone": "919840392047",
+      "caller_id_used": "WHATSAPP-CLOUD-API",
+      "caller_id_label": "Meta Cloud API",
+      "channel": "whatsapp",
+      "trigger_event": "Template Diagnostic",
+      "status": "failed",
+      "content": "{\"messaging_product\":\"whatsapp\",\"to\":\"919840392047\",\"type\":\"template\",\"template\":{\"name\":\"hello_world\",\"language\":{\"code\":\"en_US\"}}}",
+      "provider_message_id": null,
+      "error_message": "Meta WhatsApp Cloud API credentials not configured. Please set WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID in environment or Settings.",
+      "timestamp": "2026-09-02T17:51:02.295Z",
+      "created_at": "2026-09-02T17:51:02.295Z"
+    },
+    {
+      "id": "log-1788371462278-277",
+      "owner_id": "owner-1788371462083-620",
+      "tenant_id": "ten-1788371462217-947",
+      "recipient_phone": "919876543210",
+      "caller_id_used": "WHATSAPP-CLOUD-API",
+      "caller_id_label": "Meta Cloud API",
+      "channel": "whatsapp",
+      "trigger_event": "Direct Owner Send",
+      "status": "failed",
+      "content": "{\"messaging_product\":\"whatsapp\",\"recipient_type\":\"individual\",\"to\":\"919876543210\",\"type\":\"text\",\"text\":{\"body\":\"Hello Suresh, your rent of ₹25,000 is due on 5th.\"}}",
+      "provider_message_id": null,
+      "error_message": "Meta WhatsApp Cloud API credentials not configured. Please set WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID in environment or Settings.",
+      "timestamp": "2026-09-02T17:51:02.278Z",
+      "created_at": "2026-09-02T17:51:02.279Z"
+    },
+    {
       "id": "log-1788370740424-587",
       "owner_id": "owner-1788370740221-801",
       "tenant_id": null,
@@ -2436,6 +3160,66 @@
     }
   },
   "owners": [
+    {
+      "id": "owner-1788371464990-260",
+      "name": "Bob Smith",
+      "email": "bob_1788371464744@test.com",
+      "password": "$2b$10$70vYgoxz5oHnf4jRPrtNfObKtgnke.H4/OOkPOAa.HT9BZW87vPgC",
+      "phone": "+91 98222 33344",
+      "role": "OWNER",
+      "created_at": "2026-09-02T17:51:04.990Z",
+      "owner_id": "owner-1788371464990-260"
+    },
+    {
+      "id": "owner-1788371464857-350",
+      "name": "Alice Johnson",
+      "email": "alice_1788371464744@test.com",
+      "password": "$2b$10$.ivbr4X91.IWQAo6/fP8ieHIjn4faqis5TeJ2To/m4DcAx99v7/JW",
+      "phone": "+91 98111 22233",
+      "role": "OWNER",
+      "created_at": "2026-09-02T17:51:04.857Z",
+      "owner_id": "owner-1788371464857-350"
+    },
+    {
+      "id": "owner-1788371462190-365",
+      "name": "Bob Landlord",
+      "email": "bob_wa_1788371461966@test.com",
+      "password": "$2b$10$PaWCE5Dkfa59NBopzk9Jp.F3LjMZJNEYMtYB4s9xGF1LrnKtQT/zK",
+      "phone": "+91 98222 33344",
+      "role": "OWNER",
+      "created_at": "2026-09-02T17:51:02.190Z",
+      "owner_id": "owner-1788371462190-365"
+    },
+    {
+      "id": "owner-1788371462083-620",
+      "name": "Alice Landlord",
+      "email": "alice_wa_1788371461966@test.com",
+      "password": "$2b$10$wAN9y.Z7ovPUAgx/FsbOHOAJd7VZ/ZSmp2mDhURMvYfaBoUlMIXc6",
+      "phone": "+91 98111 22233",
+      "role": "OWNER",
+      "created_at": "2026-09-02T17:51:02.083Z",
+      "owner_id": "owner-1788371462083-620"
+    },
+    {
+      "id": "owner-1788371457963-140",
+      "name": "Bob Landlord",
+      "email": "bob_persist_1788371457874@test.com",
+      "password": "$2b$10$FXwKnEw8kNQBM5kb8j8XiuDrZjBcSfaWi.U6jdO3T6hbZHJqFJJKu",
+      "phone": "+91 98450 22222",
+      "role": "OWNER",
+      "created_at": "2026-09-02T17:50:57.963Z",
+      "owner_id": "owner-1788371457963-140"
+    },
+    {
+      "id": "owner-1788371457836-597",
+      "name": "Alice Landlord",
+      "email": "alice_persist_1788371457728@test.com",
+      "password": "$2b$10$XGoh90zTkM/m9.ftHLuVKe4vLne/D0tz2echMCb2HPM.bFigusv52",
+      "phone": "+91 98450 11111",
+      "role": "OWNER",
+      "created_at": "2026-09-02T17:50:57.836Z",
+      "owner_id": "owner-1788371457836-597"
+    },
     {
       "id": "owner-1788370755791-510",
       "name": "Bob Smith",
@@ -3079,6 +3863,192 @@
           "assistant_id": ""
         }
       }
+    },
+    {
+      "owner_id": "owner-1788371457836-597",
+      "currency_symbol": "₹",
+      "currency_code": "INR",
+      "country_code": "+91",
+      "business_name": "Alice Landlord Properties",
+      "owner_name": "Alice Landlord",
+      "owner_phone": "+91 98450 11111",
+      "owner_email": "alice_persist_1788371457728@test.com",
+      "upi_id": "propertyowner@upi",
+      "bank_account_info": "HDFC Bank - A/C 50200012345678 - IFSC HDFC0001234",
+      "simulation_mode": true,
+      "rotation_strategy": "anti_blocking_round_robin",
+      "telecom_providers": {
+        "twilio": {
+          "account_sid": "",
+          "auth_token": "",
+          "default_from_number": ""
+        },
+        "whatsapp_cloud": {
+          "phone_number_id": "",
+          "access_token": "",
+          "business_account_id": ""
+        },
+        "vapi_ai": {
+          "api_key": "",
+          "assistant_id": ""
+        }
+      },
+      "updated_at": "2026-09-02T17:50:57.839Z"
+    },
+    {
+      "owner_id": "owner-1788371457963-140",
+      "currency_symbol": "₹",
+      "currency_code": "INR",
+      "country_code": "+91",
+      "business_name": "Bob Landlord Properties",
+      "owner_name": "Bob Landlord",
+      "owner_phone": "+91 98450 22222",
+      "owner_email": "bob_persist_1788371457874@test.com",
+      "upi_id": "propertyowner@upi",
+      "bank_account_info": "HDFC Bank - A/C 50200012345678 - IFSC HDFC0001234",
+      "simulation_mode": true,
+      "rotation_strategy": "anti_blocking_round_robin",
+      "telecom_providers": {
+        "twilio": {
+          "account_sid": "",
+          "auth_token": "",
+          "default_from_number": ""
+        },
+        "whatsapp_cloud": {
+          "phone_number_id": "",
+          "access_token": "",
+          "business_account_id": ""
+        },
+        "vapi_ai": {
+          "api_key": "",
+          "assistant_id": ""
+        }
+      },
+      "updated_at": "2026-09-02T17:50:57.965Z"
+    },
+    {
+      "owner_id": "owner-1788371462083-620",
+      "currency_symbol": "₹",
+      "currency_code": "INR",
+      "country_code": "+91",
+      "business_name": "Alice Landlord Properties",
+      "owner_name": "Alice Landlord",
+      "owner_phone": "+91 98111 22233",
+      "owner_email": "alice_wa_1788371461966@test.com",
+      "upi_id": "propertyowner@upi",
+      "bank_account_info": "HDFC Bank - A/C 50200012345678 - IFSC HDFC0001234",
+      "simulation_mode": true,
+      "rotation_strategy": "anti_blocking_round_robin",
+      "telecom_providers": {
+        "twilio": {
+          "account_sid": "",
+          "auth_token": "",
+          "default_from_number": ""
+        },
+        "whatsapp_cloud": {
+          "phone_number_id": "",
+          "access_token": "",
+          "business_account_id": ""
+        },
+        "vapi_ai": {
+          "api_key": "",
+          "assistant_id": ""
+        }
+      },
+      "updated_at": "2026-09-02T17:51:02.085Z"
+    },
+    {
+      "owner_id": "owner-1788371462190-365",
+      "currency_symbol": "₹",
+      "currency_code": "INR",
+      "country_code": "+91",
+      "business_name": "Bob Landlord Properties",
+      "owner_name": "Bob Landlord",
+      "owner_phone": "+91 98222 33344",
+      "owner_email": "bob_wa_1788371461966@test.com",
+      "upi_id": "propertyowner@upi",
+      "bank_account_info": "HDFC Bank - A/C 50200012345678 - IFSC HDFC0001234",
+      "simulation_mode": true,
+      "rotation_strategy": "anti_blocking_round_robin",
+      "telecom_providers": {
+        "twilio": {
+          "account_sid": "",
+          "auth_token": "",
+          "default_from_number": ""
+        },
+        "whatsapp_cloud": {
+          "phone_number_id": "",
+          "access_token": "",
+          "business_account_id": ""
+        },
+        "vapi_ai": {
+          "api_key": "",
+          "assistant_id": ""
+        }
+      },
+      "updated_at": "2026-09-02T17:51:02.192Z"
+    },
+    {
+      "owner_id": "owner-1788371464857-350",
+      "currency_symbol": "₹",
+      "currency_code": "INR",
+      "country_code": "+91",
+      "business_name": "Alice Johnson Properties",
+      "owner_name": "Alice Johnson",
+      "owner_phone": "+91 98111 22233",
+      "owner_email": "alice_1788371464744@test.com",
+      "upi_id": "propertyowner@upi",
+      "bank_account_info": "HDFC Bank - A/C 50200012345678 - IFSC HDFC0001234",
+      "simulation_mode": true,
+      "rotation_strategy": "anti_blocking_round_robin",
+      "telecom_providers": {
+        "twilio": {
+          "account_sid": "",
+          "auth_token": "",
+          "default_from_number": ""
+        },
+        "whatsapp_cloud": {
+          "phone_number_id": "",
+          "access_token": "",
+          "business_account_id": ""
+        },
+        "vapi_ai": {
+          "api_key": "",
+          "assistant_id": ""
+        }
+      },
+      "updated_at": "2026-09-02T17:51:04.859Z"
+    },
+    {
+      "owner_id": "owner-1788371464990-260",
+      "currency_symbol": "₹",
+      "currency_code": "INR",
+      "country_code": "+91",
+      "business_name": "Bob Smith Properties",
+      "owner_name": "Bob Smith",
+      "owner_phone": "+91 98222 33344",
+      "owner_email": "bob_1788371464744@test.com",
+      "upi_id": "propertyowner@upi",
+      "bank_account_info": "HDFC Bank - A/C 50200012345678 - IFSC HDFC0001234",
+      "simulation_mode": true,
+      "rotation_strategy": "anti_blocking_round_robin",
+      "telecom_providers": {
+        "twilio": {
+          "account_sid": "",
+          "auth_token": "",
+          "default_from_number": ""
+        },
+        "whatsapp_cloud": {
+          "phone_number_id": "",
+          "access_token": "",
+          "business_account_id": ""
+        },
+        "vapi_ai": {
+          "api_key": "",
+          "assistant_id": ""
+        }
+      },
+      "updated_at": "2026-09-02T17:51:04.992Z"
     }
   ]
 }

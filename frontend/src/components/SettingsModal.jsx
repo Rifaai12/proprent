@@ -41,6 +41,7 @@ export const SettingsModal = ({ isOpen, onClose, settings, onSaveSettings }) => 
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifyResult, setVerifyResult] = useState(null);
   const [testResult, setTestResult] = useState(null);
+  const [dbHealth, setDbHealth] = useState(null);
 
   const apiBaseUrl = getApiBaseUrl();
 
@@ -55,9 +56,21 @@ export const SettingsModal = ({ isOpen, onClose, settings, onSaveSettings }) => 
     }
   };
 
+  const fetchDbHealth = async () => {
+    try {
+      const res = await api.getDbHealth();
+      if (res.success) {
+        setDbHealth(res);
+      }
+    } catch (err) {
+      console.error('Failed to fetch DB health:', err);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       fetchWaStatus();
+      fetchDbHealth();
     }
   }, [isOpen]);
 
@@ -171,13 +184,31 @@ export const SettingsModal = ({ isOpen, onClose, settings, onSaveSettings }) => 
           </button>
         </div>
 
-        {/* API Base URL Diagnostic Banner */}
-        <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-2 text-[11px]">
-          <div className="flex items-center gap-1.5 text-slate-400">
-            <Globe className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Backend API Base URL:</span>
+        {/* Diagnostics Banners: API Base URL & Database Persistence */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+          <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <Globe className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Backend URL:</span>
+            </div>
+            <span className="font-mono text-indigo-300 font-semibold truncate max-w-[140px]">{apiBaseUrl}</span>
           </div>
-          <span className="font-mono text-indigo-300 font-semibold truncate max-w-xs">{apiBaseUrl}</span>
+
+          <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <Activity className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Database Storage:</span>
+            </div>
+            {dbHealth?.engine === 'PostgreSQL' ? (
+              <span className="px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 font-medium">
+                PostgreSQL (Persistent)
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 rounded-full bg-amber-950/80 border border-amber-500/40 text-amber-400 font-medium" title="Set DATABASE_URL in Render environment to enable permanent PostgreSQL persistence">
+                Local File (Ephemeral)
+              </span>
+            )}
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

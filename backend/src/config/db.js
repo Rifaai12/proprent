@@ -1,18 +1,17 @@
+import pg from 'pg';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { runDatabaseMigrations } from './migrate.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DATA_DIR = path.join(__dirname, '../../data');
-const DB_FILE = path.join(DATA_DIR, 'property_rent_db.json');
+const DB_FILE = path.join(__dirname, '../../data/property_rent_db.json');
 
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
+const DATABASE_URL = process.env.DATABASE_URL;
+const isProduction = process.env.NODE_ENV === 'production';
 
-// Generate standard default bilingual automation rules for a specific owner
+// Generate standard default bilingual automation rules for an owner
 export const createDefaultRulesForOwner = (ownerId, ownerName = 'Property Owner') => {
   return [
     {
@@ -85,7 +84,6 @@ Final Notice for {tenant_name}: Your rent for {property_name} ({unit_number}) is
   ];
 };
 
-// Generate default owner settings
 export const createDefaultSettingsForOwner = (ownerId, ownerName = 'Property Owner', ownerEmail = '', ownerPhone = '') => {
   return {
     owner_id: ownerId,
@@ -101,302 +99,458 @@ export const createDefaultSettingsForOwner = (ownerId, ownerName = 'Property Own
     simulation_mode: true,
     rotation_strategy: 'anti_blocking_round_robin',
     telecom_providers: {
-      twilio: {
-        account_sid: '',
-        auth_token: '',
-        default_from_number: ''
-      },
-      whatsapp_cloud: {
-        phone_number_id: '',
-        access_token: '',
-        business_account_id: ''
-      },
-      vapi_ai: {
-        api_key: '',
-        assistant_id: ''
-      }
+      twilio: { account_sid: '', auth_token: '', default_from_number: '' },
+      whatsapp_cloud: { phone_number_id: '', access_token: '', business_account_id: '' },
+      vapi_ai: { api_key: '', assistant_id: '' }
     }
   };
 };
 
-// Generate initial demo database state (with records strictly tagged to demo owner-1)
-export const getDefaultState = () => {
-  const demoOwnerId = 'owner-1';
-  const mohamedOwnerId = 'owner-2';
-
-  return {
-    owners: [
-      {
-        id: demoOwnerId,
-        name: 'Vikram (Property Owner)',
-        email: 'owner@apexproperties.com',
-        password: '$2b$10$XnHjHnxxy0kBXREcd.66aeS7s6WCO/Mz1pWT7ujG73Xz4QnZc4FNS', // password123
-        phone: '+91 98000 11223',
-        role: 'SUPER_OWNER',
-        created_at: new Date().toISOString()
-      },
-      {
-        id: mohamedOwnerId,
-        name: 'Mohamed Rifaai',
-        email: 'mohamedrifaai151@gmail.com',
-        password: '$2b$10$2CUFVR4.Qh0T7LqC/w75But2QSWBpp3KWsuWkqM3TbI6Fj4Pnekz.', // Nazeer21
-        phone: '+91 98450 99887',
-        role: 'SUPER_OWNER',
-        created_at: new Date().toISOString()
-      }
-    ],
-    properties: [],
-    tenants: [],
-    phone_numbers: [],
-    rules: [
-      ...createDefaultRulesForOwner(demoOwnerId, 'Vikram'),
-      ...createDefaultRulesForOwner(mohamedOwnerId, 'Mohamed Rifaai')
-    ],
-    payment_history: [],
-    automation_logs: [],
-    settings_list: [
-      createDefaultSettingsForOwner(demoOwnerId, 'Vikram', 'owner@apexproperties.com', '+91 98000 11223'),
-      createDefaultSettingsForOwner(mohamedOwnerId, 'Mohamed Rifaai', 'mohamedrifaai151@gmail.com', '+91 98450 99887')
-    ]
-  };
-};
-
-class JSONDatabase {
+/**
+ * PostgreSQL Production Database Layer
+ */
+class DatabaseManager {
   constructor() {
-    this.init();
+    this.isPostgres = false;
+    this.pool = null;
+    this.localData = null;
+    this.initialized = false;
   }
 
-  init() {
+  async init() {
+    if (this.initialized) return;
+
+    if (DATABASE_URL) {
+      console.log('[DATABASE] Connecting to PostgreSQL via DATABASE_URL...');
+      const requiresSsl = DATABASE_URL.includes('render.com') ||
+                          DATABASE_URL.includes('supabase.co') ||
+                          DATABASE_URL.includes('neon.tech') ||
+                          DATABASE_URL.includes('sslmode=require') ||
+                          isProduction;
+
+      this.pool = new pg.Pool({
+        connectionString: DATABASE_URL,
+        ssl: requiresSsl ? { rejectUnauthorized: false } : false,
+        max: 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
+      });
+
+      try {
+        const client = await this.pool.connect();
+        console.log('✅ [DATABASE] Successfully connected to PostgreSQL database!');
+        client.release();
+
+        // Run migrations
+        await runDatabaseMigrations(this.pool);
+        this.isPostgres = true;
+        this.initialized = true;
+        return;
+      } catch (err) {
+        console.error('❌ [DATABASE] Failed to connect to PostgreSQL:', err.message);
+        if (isProduction) {
+          throw new Error(`FATAL: PostgreSQL connection failed in production: ${err.message}`);
+        }
+        console.warn('⚠️ [DATABASE] Falling back to local storage for local development.');
+      }
+    } else if (isProduction) {
+      throw new Error('FATAL: DATABASE_URL environment variable is required in production! Ephemeral JSON storage is disabled.');
+    } else {
+      console.warn('⚠️ [DATABASE] DATABASE_URL not set. Running in local fallback mode.');
+    }
+
+    // Local file fallback
+    this.initLocalFallback();
+    this.initialized = true;
+  }
+
+  initLocalFallback() {
     if (!fs.existsSync(DB_FILE)) {
-      const defaultData = getDefaultState();
-      fs.writeFileSync(DB_FILE, JSON.stringify(defaultData, null, 2), 'utf-8');
-      this.data = defaultData;
+      this.localData = {
+        owners: [],
+        properties: [],
+        tenants: [],
+        phone_numbers: [],
+        rules: [],
+        payment_history: [],
+        automation_logs: [],
+        settings_list: []
+      };
+      fs.writeFileSync(DB_FILE, JSON.stringify(this.localData, null, 2), 'utf-8');
     } else {
       try {
         const raw = fs.readFileSync(DB_FILE, 'utf-8');
-        this.data = JSON.parse(raw);
-        // Ensure all required collections exist
-        if (!this.data.owners) this.data.owners = [];
-        if (!this.data.properties) this.data.properties = [];
-        if (!this.data.tenants) this.data.tenants = [];
-        if (!this.data.phone_numbers) this.data.phone_numbers = [];
-        if (!this.data.rules) this.data.rules = [];
-        if (!this.data.payment_history) this.data.payment_history = [];
-        if (!this.data.automation_logs) this.data.automation_logs = [];
-        if (!this.data.settings_list) this.data.settings_list = [];
-      } catch (err) {
-        console.error('[DB] Error reading database file, reinitializing with clean state:', err);
-        this.data = getDefaultState();
-        this.save();
+        this.localData = JSON.parse(raw);
+      } catch (e) {
+        this.localData = { owners: [], properties: [], tenants: [], phone_numbers: [], rules: [], payment_history: [], automation_logs: [], settings_list: [] };
       }
     }
   }
 
-  save() {
-    try {
-      fs.writeFileSync(DB_FILE, JSON.stringify(this.data, null, 2), 'utf-8');
-    } catch (err) {
-      console.error('[DB] Error saving database to file:', err);
+  saveLocal() {
+    if (this.localData && !this.isPostgres) {
+      try {
+        fs.writeFileSync(DB_FILE, JSON.stringify(this.localData, null, 2), 'utf-8');
+      } catch (e) {
+        console.error('Error saving local db:', e);
+      }
     }
   }
 
-  // ================= GENERAL COLLECTION ACCESS ================= //
-  get(collection) {
-    return this.data[collection] || [];
-  }
-
-  set(collection, items) {
-    this.data[collection] = items;
-    this.save();
-  }
-
-  find(collection, predicate) {
-    const list = this.get(collection);
-    return list.find(predicate);
-  }
-
-  filter(collection, predicate) {
-    const list = this.get(collection);
-    return list.filter(predicate);
-  }
-
-  insert(collection, item) {
-    if (!this.data[collection]) {
-      this.data[collection] = [];
+  /**
+   * Health Check helper
+   */
+  async checkHealth() {
+    if (this.isPostgres && this.pool) {
+      const start = Date.now();
+      const res = await this.pool.query('SELECT NOW()');
+      const tableCounts = await this.pool.query(`
+        SELECT 
+          (SELECT COUNT(*) FROM owners) as owners,
+          (SELECT COUNT(*) FROM properties) as properties,
+          (SELECT COUNT(*) FROM tenants) as tenants,
+          (SELECT COUNT(*) FROM rules) as rules
+      `);
+      return {
+        status: 'connected',
+        engine: 'PostgreSQL',
+        latencyMs: Date.now() - start,
+        timestamp: res.rows[0].now,
+        tables: tableCounts.rows[0]
+      };
     }
-    this.data[collection].unshift(item);
-    this.save();
-    return item;
+
+    return {
+      status: 'connected',
+      engine: 'Local Memory Fallback',
+      warning: 'DATABASE_URL is not configured. Data is not stored in PostgreSQL.',
+      propertiesCount: this.localData?.properties?.length || 0
+    };
   }
 
-  update(collection, id, updates) {
-    if (!this.data[collection]) return null;
-    const index = this.data[collection].findIndex(i => i.id === id);
-    if (index !== -1) {
-      this.data[collection][index] = { ...this.data[collection][index], ...updates };
-      this.save();
-      return this.data[collection][index];
+  /**
+   * Direct SQL query
+   */
+  async query(sql, params = []) {
+    await this.init();
+    if (this.isPostgres) {
+      return this.pool.query(sql, params);
     }
-    return null;
+    throw new Error('Direct SQL queries are only supported when PostgreSQL is connected');
   }
 
-  delete(collection, id) {
-    if (!this.data[collection]) return false;
-    const initialLen = this.data[collection].length;
-    this.data[collection] = this.data[collection].filter(i => i.id !== id);
-    if (this.data[collection].length !== initialLen) {
-      this.save();
-      return true;
+  // ================= GENERAL GET / FILTER ================= //
+
+  async get(collection) {
+    await this.init();
+    if (this.isPostgres) {
+      const tableName = collection === 'settings_list' ? 'settings' : collection;
+      const res = await this.pool.query(`SELECT * FROM ${tableName} ORDER BY created_at DESC`);
+      return res.rows;
     }
-    return false;
+    return this.localData[collection] || [];
   }
 
-  // ================= OWNER-SCOPED ISOLATION METHODS ================= //
-  
-  getByOwner(collection, ownerId) {
+  async find(collection, predicate) {
+    await this.init();
+    if (this.isPostgres) {
+      const items = await this.get(collection);
+      return items.find(predicate);
+    }
+    return (this.localData[collection] || []).find(predicate);
+  }
+
+  // ================= OWNER-SCOPED CRUD OPERATIONS ================= //
+
+  async getByOwner(collection, ownerId) {
+    await this.init();
     if (!ownerId) return [];
-    const list = this.get(collection);
-    return list.filter(item => item.owner_id === ownerId);
+
+    if (this.isPostgres) {
+      const tableName = collection === 'settings_list' ? 'settings' : collection;
+      const res = await this.pool.query(
+        `SELECT * FROM ${tableName} WHERE owner_id = $1 ORDER BY created_at DESC`,
+        [ownerId]
+      );
+      return res.rows;
+    }
+
+    return (this.localData[collection] || []).filter(item => item.owner_id === ownerId);
   }
 
-  findByOwner(collection, ownerId, predicate) {
+  async findByOwner(collection, ownerId, predicateOrId) {
+    await this.init();
     if (!ownerId) return null;
-    const list = this.get(collection);
-    return list.find(item => item.owner_id === ownerId && predicate(item));
+
+    if (this.isPostgres) {
+      const tableName = collection === 'settings_list' ? 'settings' : collection;
+      if (typeof predicateOrId === 'string') {
+        const res = await this.pool.query(
+          `SELECT * FROM ${tableName} WHERE owner_id = $1 AND id = $2 LIMIT 1`,
+          [ownerId, predicateOrId]
+        );
+        return res.rows[0] || null;
+      }
+      const list = await this.getByOwner(collection, ownerId);
+      return list.find(predicateOrId) || null;
+    }
+
+    const list = this.localData[collection] || [];
+    if (typeof predicateOrId === 'string') {
+      return list.find(item => item.owner_id === ownerId && item.id === predicateOrId) || null;
+    }
+    return list.find(item => item.owner_id === ownerId && predicateOrId(item)) || null;
   }
 
-  filterByOwner(collection, ownerId, predicate) {
-    if (!ownerId) return [];
-    const list = this.get(collection);
-    return list.filter(item => item.owner_id === ownerId && predicate(item));
-  }
-
-  insertForOwner(collection, ownerId, item) {
+  async insertForOwner(collection, ownerId, item) {
+    await this.init();
     if (!ownerId) throw new Error('Owner ID is required to insert scoped record');
+
     const scopedItem = {
       ...item,
-      owner_id: ownerId
+      owner_id: ownerId,
+      created_at: item.created_at || new Date().toISOString()
     };
-    return this.insert(collection, scopedItem);
+
+    if (this.isPostgres) {
+      const tableName = collection === 'settings_list' ? 'settings' : collection;
+      const keys = Object.keys(scopedItem);
+      const values = Object.values(scopedItem).map(v => 
+        (typeof v === 'object' && v !== null) ? JSON.stringify(v) : v
+      );
+      const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
+
+      const sql = `INSERT INTO ${tableName} (${keys.join(', ')}) VALUES (${placeholders}) RETURNING *`;
+      const res = await this.pool.query(sql, values);
+      return res.rows[0];
+    }
+
+    if (!this.localData[collection]) this.localData[collection] = [];
+    this.localData[collection].unshift(scopedItem);
+    this.saveLocal();
+    return scopedItem;
   }
 
-  updateForOwner(collection, ownerId, id, updates) {
+  async updateForOwner(collection, ownerId, id, updates) {
+    await this.init();
     if (!ownerId || !id) return null;
-    if (!this.data[collection]) return null;
-    const index = this.data[collection].findIndex(i => i.id === id && i.owner_id === ownerId);
+
+    const { owner_id, id: updateId, created_at, ...safeUpdates } = updates;
+    safeUpdates.updated_at = new Date().toISOString();
+
+    if (this.isPostgres) {
+      const tableName = collection === 'settings_list' ? 'settings' : collection;
+      const keys = Object.keys(safeUpdates);
+      if (keys.length === 0) return this.findByOwner(collection, ownerId, id);
+
+      const setClauses = keys.map((k, i) => `${k} = $${i + 3}`).join(', ');
+      const values = keys.map(k => {
+        const v = safeUpdates[k];
+        return (typeof v === 'object' && v !== null) ? JSON.stringify(v) : v;
+      });
+
+      const sql = `UPDATE ${tableName} SET ${setClauses} WHERE id = $1 AND owner_id = $2 RETURNING *`;
+      const res = await this.pool.query(sql, [id, ownerId, ...values]);
+      return res.rows[0] || null;
+    }
+
+    const list = this.localData[collection] || [];
+    const index = list.findIndex(i => i.id === id && i.owner_id === ownerId);
     if (index !== -1) {
-      // Prevent mutating owner_id
-      const { owner_id, ...safeUpdates } = updates;
-      this.data[collection][index] = { ...this.data[collection][index], ...safeUpdates };
-      this.save();
-      return this.data[collection][index];
+      list[index] = { ...list[index], ...safeUpdates };
+      this.saveLocal();
+      return list[index];
     }
     return null;
   }
 
-  deleteForOwner(collection, ownerId, id) {
+  async deleteForOwner(collection, ownerId, id) {
+    await this.init();
     if (!ownerId || !id) return false;
-    if (!this.data[collection]) return false;
-    const initialLen = this.data[collection].length;
-    this.data[collection] = this.data[collection].filter(i => !(i.id === id && i.owner_id === ownerId));
-    if (this.data[collection].length !== initialLen) {
-      this.save();
+
+    if (this.isPostgres) {
+      const tableName = collection === 'settings_list' ? 'settings' : collection;
+      const res = await this.pool.query(
+        `DELETE FROM ${tableName} WHERE id = $1 AND owner_id = $2 RETURNING id`,
+        [id, ownerId]
+      );
+      return res.rowCount > 0;
+    }
+
+    const list = this.localData[collection] || [];
+    const initLen = list.length;
+    this.localData[collection] = list.filter(i => !(i.id === id && i.owner_id === ownerId));
+    if (this.localData[collection].length !== initLen) {
+      this.saveLocal();
       return true;
     }
     return false;
   }
 
   // ================= OWNER SETTINGS ================= //
-  
-  getSettingsForOwner(ownerId) {
+
+  async getSettingsForOwner(ownerId) {
+    await this.init();
     if (!ownerId) return createDefaultSettingsForOwner('default', 'Property Owner');
-    if (!this.data.settings_list) this.data.settings_list = [];
-    
-    let settings = this.data.settings_list.find(s => s.owner_id === ownerId);
-    if (!settings) {
-      // Find owner details to initialize customized settings
-      const owner = this.find('owners', o => o.id === ownerId);
-      settings = createDefaultSettingsForOwner(
-        ownerId, 
+
+    if (this.isPostgres) {
+      const res = await this.pool.query('SELECT * FROM settings WHERE owner_id = $1', [ownerId]);
+      if (res.rows.length > 0) {
+        return res.rows[0];
+      }
+
+      // Initialize default settings in PostgreSQL for this owner
+      const ownerRes = await this.pool.query('SELECT * FROM owners WHERE id = $1', [ownerId]);
+      const owner = ownerRes.rows[0];
+      const defaults = createDefaultSettingsForOwner(
+        ownerId,
         owner ? owner.name : 'Property Owner',
         owner ? owner.email : '',
         owner ? owner.phone : ''
       );
-      this.data.settings_list.push(settings);
-      this.save();
+
+      await this.pool.query(
+        `INSERT INTO settings (owner_id, business_name, owner_name, owner_phone, owner_email, currency_symbol, currency_code, country_code, upi_id, bank_account_info, simulation_mode, rotation_strategy, telecom_providers)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+         ON CONFLICT (owner_id) DO NOTHING`,
+        [
+          defaults.owner_id,
+          defaults.business_name,
+          defaults.owner_name,
+          defaults.owner_phone,
+          defaults.owner_email,
+          defaults.currency_symbol,
+          defaults.currency_code,
+          defaults.country_code,
+          defaults.upi_id,
+          defaults.bank_account_info,
+          defaults.simulation_mode,
+          defaults.rotation_strategy,
+          JSON.stringify(defaults.telecom_providers)
+        ]
+      );
+      return defaults;
+    }
+
+    if (!this.localData.settings_list) this.localData.settings_list = [];
+    let settings = this.localData.settings_list.find(s => s.owner_id === ownerId);
+    if (!settings) {
+      settings = createDefaultSettingsForOwner(ownerId, 'Property Owner');
+      this.localData.settings_list.push(settings);
+      this.saveLocal();
     }
     return settings;
   }
 
-  updateSettingsForOwner(ownerId, updates) {
+  async updateSettingsForOwner(ownerId, updates) {
+    await this.init();
     if (!ownerId) return null;
-    if (!this.data.settings_list) this.data.settings_list = [];
-    
-    const index = this.data.settings_list.findIndex(s => s.owner_id === ownerId);
-    const { owner_id, ...safeUpdates } = updates;
 
+    const { owner_id, ...safeUpdates } = updates;
+    safeUpdates.updated_at = new Date().toISOString();
+
+    if (this.isPostgres) {
+      // Fetch current or defaults
+      const current = await this.getSettingsForOwner(ownerId);
+      const merged = { ...current, ...safeUpdates };
+
+      await this.pool.query(
+        `INSERT INTO settings (owner_id, business_name, owner_name, owner_phone, owner_email, currency_symbol, currency_code, country_code, upi_id, bank_account_info, simulation_mode, rotation_strategy, telecom_providers, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+         ON CONFLICT (owner_id) DO UPDATE SET
+           business_name = EXCLUDED.business_name,
+           owner_name = EXCLUDED.owner_name,
+           owner_phone = EXCLUDED.owner_phone,
+           owner_email = EXCLUDED.owner_email,
+           currency_symbol = EXCLUDED.currency_symbol,
+           currency_code = EXCLUDED.currency_code,
+           country_code = EXCLUDED.country_code,
+           upi_id = EXCLUDED.upi_id,
+           bank_account_info = EXCLUDED.bank_account_info,
+           simulation_mode = EXCLUDED.simulation_mode,
+           rotation_strategy = EXCLUDED.rotation_strategy,
+           telecom_providers = EXCLUDED.telecom_providers,
+           updated_at = EXCLUDED.updated_at`,
+        [
+          ownerId,
+          merged.business_name || '',
+          merged.owner_name || '',
+          merged.owner_phone || '',
+          merged.owner_email || '',
+          merged.currency_symbol || '₹',
+          merged.currency_code || 'INR',
+          merged.country_code || '+91',
+          merged.upi_id || '',
+          merged.bank_account_info || '',
+          merged.simulation_mode !== false,
+          merged.rotation_strategy || 'anti_blocking_round_robin',
+          JSON.stringify(merged.telecom_providers || {}),
+          merged.updated_at
+        ]
+      );
+      return merged;
+    }
+
+    if (!this.localData.settings_list) this.localData.settings_list = [];
+    const index = this.localData.settings_list.findIndex(s => s.owner_id === ownerId);
     if (index !== -1) {
-      this.data.settings_list[index] = { ...this.data.settings_list[index], ...safeUpdates };
-      this.save();
-      return this.data.settings_list[index];
+      this.localData.settings_list[index] = { ...this.localData.settings_list[index], ...safeUpdates };
+      this.saveLocal();
+      return this.localData.settings_list[index];
     } else {
-      const newSettings = {
-        ...createDefaultSettingsForOwner(ownerId),
-        ...safeUpdates,
-        owner_id: ownerId
-      };
-      this.data.settings_list.push(newSettings);
-      this.save();
+      const newSettings = { ...createDefaultSettingsForOwner(ownerId), ...safeUpdates, owner_id: ownerId };
+      this.localData.settings_list.push(newSettings);
+      this.saveLocal();
       return newSettings;
     }
   }
 
-  // Initialize new owner defaults (settings + rules + 1 default number)
-  initializeOwnerDefaults(ownerId, ownerName, ownerEmail, ownerPhone) {
-    // 1. Initialize settings
-    this.updateSettingsForOwner(ownerId, {
+  /**
+   * Initialize settings, 5 default bilingual rules, and 2 phone lines for newly registered owner
+   */
+  async initializeOwnerDefaults(ownerId, ownerName, ownerEmail, ownerPhone) {
+    await this.init();
+
+    // 1. Settings
+    await this.updateSettingsForOwner(ownerId, {
       owner_name: ownerName,
       owner_email: ownerEmail,
       owner_phone: ownerPhone,
       business_name: `${ownerName} Properties`
     });
 
-    // 2. Initialize default rules if none exist for owner
-    const existingRules = this.getByOwner('rules', ownerId);
+    // 2. Rules
+    const existingRules = await this.getByOwner('rules', ownerId);
     if (existingRules.length === 0) {
       const defaultRules = createDefaultRulesForOwner(ownerId, ownerName);
       for (const rule of defaultRules) {
-        this.insert('rules', rule);
+        await this.insertForOwner('rules', ownerId, rule);
       }
     }
 
-    // 3. Initialize default virtual caller line if none exist
-    const existingNumbers = this.getByOwner('phone_numbers', ownerId);
+    // 3. Virtual caller lines
+    const existingNumbers = await this.getByOwner('phone_numbers', ownerId);
     if (existingNumbers.length === 0) {
-      this.insert('phone_numbers', {
+      await this.insertForOwner('phone_numbers', ownerId, {
         id: `num-${Date.now()}-1`,
-        owner_id: ownerId,
         phone_number: '+91 80474 81001',
         label: 'Line Alpha (Primary Calling Line)',
         provider: 'Twilio Virtual DID Pool',
         is_active: true,
         calls_count: 0,
-        last_used_at: null,
         reputation: 'Clean (100% Delivery)'
       });
-      this.insert('phone_numbers', {
+      await this.insertForOwner('phone_numbers', ownerId, {
         id: `num-${Date.now()}-2`,
-        owner_id: ownerId,
         phone_number: '+91 80474 81002',
         label: 'Line Beta (Rotated Backup Line)',
         provider: 'Twilio Virtual DID Pool',
         is_active: true,
         calls_count: 0,
-        last_used_at: null,
         reputation: 'Clean (100% Delivery)'
       });
     }
   }
 }
 
-export const db = new JSONDatabase();
+export const db = new DatabaseManager();
