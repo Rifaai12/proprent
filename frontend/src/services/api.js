@@ -210,7 +210,26 @@ export const api = {
     });
   },
 
-  // Simulator
+  // Meta WhatsApp Business Cloud API
+  getWhatsAppStatus: async () => {
+    return safeFetch(`${API_BASE}/whatsapp/status`, { headers: getAuthHeaders() });
+  },
+  sendWhatsAppMessage: async ({ tenantId, message }) => {
+    return safeFetch(`${API_BASE}/whatsapp/send`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ tenantId, message }),
+    });
+  },
+  sendWhatsAppTest: async ({ testPhone, message }) => {
+    return safeFetch(`${API_BASE}/whatsapp/test`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ testPhone, message }),
+    });
+  },
+
+  // Voice Call Simulator
   triggerSimulatorCall: async ({ tenant_id, channel, custom_script }) => {
     return safeFetch(`${API_BASE}/simulator/trigger-call`, {
       method: 'POST',

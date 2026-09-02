@@ -1,5 +1,6 @@
 import { db } from '../config/db.js';
 import { NumberPoolService } from './numberPoolService.js';
+import { WhatsAppService } from './whatsappService.js';
 
 export class TelecomService {
   /**
@@ -71,13 +72,40 @@ export class TelecomService {
   }
 
   /**
-   * Dispatch a WhatsApp message to a tenant
+   * Dispatch a WhatsApp message to a tenant (Live Meta Cloud API or Simulation Mode)
    */
   static async dispatchWhatsAppMessage({ tenant, messageText, ruleName, triggerEvent }) {
     const ownerId = tenant.owner_id;
     const settings = db.getSettingsForOwner(ownerId);
     const renderedMessage = this.renderTemplate(messageText, tenant, settings);
 
+    // If live production mode is active and Meta credentials exist, call Meta WhatsApp Cloud API directly
+    const waCreds = WhatsAppService.getCredentials(ownerId);
+    if (!settings.simulation_mode && waCreds.accessToken && waCreds.phoneNumberId) {
+      try {
+        console.log(`[LIVE WHATSAPP] Sending live Meta Cloud API message to ${tenant.phone}...`);
+        const sendResult = await WhatsAppService.sendWhatsAppMessage({
+          to: tenant.phone,
+          message: renderedMessage,
+          ownerId,
+          tenantId: tenant.id,
+          ruleName,
+          triggerEvent
+        });
+        return sendResult.log;
+      } catch (liveSendErr) {
+        console.error('[LIVE WHATSAPP FAILED]:', liveSendErr.message);
+        // Returns the failed log entry generated inside sendWhatsAppMessage
+        return {
+          id: `log-${Date.now()}`,
+          status: 'failed',
+          content: renderedMessage,
+          error_message: liveSendErr.message
+        };
+      }
+    }
+
+    // Default simulation / sandbox record
     const logEntry = {
       id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       owner_id: ownerId,
@@ -92,12 +120,8 @@ export class TelecomService {
       content: renderedMessage,
       call_duration_sec: null,
       timestamp: new Date().toISOString(),
-      mode: settings.simulation_mode ? 'SANDBOX_SIMULATED' : 'LIVE_PRODUCTION'
+      mode: 'SANDBOX_SIMULATED'
     };
-
-    if (!settings.simulation_mode && settings.telecom_providers?.whatsapp_cloud?.access_token) {
-      console.log(`[LIVE WHATSAPP] Sending message to ${tenant.phone}...`);
-    }
 
     db.insertForOwner('automation_logs', ownerId, logEntry);
     return logEntry;

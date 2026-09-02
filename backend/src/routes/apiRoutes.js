@@ -3,6 +3,7 @@ import { db } from '../config/db.js';
 import { NumberPoolService } from '../services/numberPoolService.js';
 import { AutomationService } from '../services/automationService.js';
 import { TelecomService } from '../services/telecomService.js';
+import { WhatsAppService } from '../services/whatsappService.js';
 import { requireAuth } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
@@ -270,6 +271,100 @@ Hello {tenant_name}. This is an automated call from {owner_name} regarding your 
     res.json({ success: true, log: logResult });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ================= META WHATSAPP BUSINESS CLOUD API ================= //
+
+// Get connection and configuration status (Safe: Never exposes the access token)
+router.get('/whatsapp/status', (req, res) => {
+  const ownerId = req.owner.id;
+  const status = WhatsAppService.getStatus(ownerId);
+  res.json({ success: true, ...status });
+});
+
+// Send Direct WhatsApp Message to an authenticated Owner's Tenant
+router.post('/whatsapp/send', async (req, res) => {
+  const ownerId = req.owner.id;
+  const { tenantId, message, customMessage } = req.body;
+
+  if (!tenantId) {
+    return res.status(400).json({ error: 'Tenant ID is required' });
+  }
+
+  // Strictly verify that the tenant belongs to the authenticated owner
+  const tenant = db.findByOwner('tenants', ownerId, t => t.id === tenantId);
+  if (!tenant) {
+    return res.status(404).json({ error: 'Tenant not found in your account or access denied' });
+  }
+
+  const settings = db.getSettingsForOwner(ownerId);
+  const rawMessage = message || customMessage || `Hello {tenant_name}! This is a reminder regarding your rent of {currency}{rent_amount} for {property_name} ({unit_number}) due on {due_date}. Thank you! - {owner_name}`;
+  const renderedMessage = TelecomService.renderTemplate(rawMessage, tenant, settings);
+
+  try {
+    const result = await WhatsAppService.sendWhatsAppMessage({
+      to: tenant.phone,
+      message: renderedMessage,
+      ownerId,
+      tenantId: tenant.id,
+      ruleName: 'Manual WhatsApp Notice',
+      triggerEvent: 'Direct Owner Send'
+    });
+
+    res.json({
+      success: true,
+      message: 'WhatsApp message accepted by Meta Cloud API and sent to tenant',
+      messageId: result.messageId,
+      recipient: result.recipient,
+      log: result.log
+    });
+  } catch (err) {
+    console.error(`[API /whatsapp/send ERROR]: ${err.message}`);
+    res.status(400).json({
+      success: false,
+      error: err.message,
+      code: err.code || 'WHATSAPP_SEND_FAILED',
+      metaDetails: err.metaDetails || null
+    });
+  }
+});
+
+// Test WhatsApp Cloud API direct send to an arbitrary test phone
+router.post('/whatsapp/test', async (req, res) => {
+  const ownerId = req.owner.id;
+  const { testPhone, message } = req.body;
+
+  if (!testPhone) {
+    return res.status(400).json({ error: 'Test destination phone number is required' });
+  }
+
+  const testMessage = message || 'Hello! This is a test utility message from PropertyRent.AI via Meta WhatsApp Business Cloud API.';
+
+  try {
+    const result = await WhatsAppService.sendWhatsAppMessage({
+      to: testPhone,
+      message: testMessage,
+      ownerId,
+      ruleName: 'Meta API Test Check',
+      triggerEvent: 'Admin Test Send'
+    });
+
+    res.json({
+      success: true,
+      message: 'Test message accepted by Meta Cloud API and delivered',
+      messageId: result.messageId,
+      recipient: result.recipient,
+      responseTimeMs: result.responseTimeMs
+    });
+  } catch (err) {
+    console.error(`[API /whatsapp/test ERROR]: ${err.message}`);
+    res.status(400).json({
+      success: false,
+      error: err.message,
+      code: err.code || 'TEST_SEND_FAILED',
+      metaDetails: err.metaDetails || null
+    });
   }
 });
 
